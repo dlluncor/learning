@@ -1,6 +1,6 @@
 var barchart = {};
 
-barchart.renderBars = function(data) {
+barchart.renderBars = function(data, divId) {
   // Set up.
 var margin = {top: 20, right: 20, bottom: 30, left: 40},
     width = 960 - margin.left - margin.right,
@@ -23,7 +23,7 @@ var yAxis = d3.svg.axis()
     .orient("left")
     .tickFormat(formatPercent);
 
-var svg = d3.select("body").append("svg")
+var svg = d3.select('#' + divId).append("svg")
     .attr("width", width + margin.left + margin.right)
     .attr("height", height + margin.top + margin.bottom)
     .append("g")

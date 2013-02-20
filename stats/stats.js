@@ -3,6 +3,17 @@ var print = function(str) {
   $('#canvas').append('<div>' + str + '</div>'); 
 };
 
+var MyMath = {};
+
+// Gets the mean of an array.
+MyMath.mean = function(arr) {
+  var sum = 0;
+  arr.forEach(function(el) {
+    sum += el;
+  });
+  return sum / arr.length;
+};
+
 var stats = {};
 
 stats = function(distrib) {
@@ -37,6 +48,40 @@ stats.prototype.sampleDistribution = function(trials, n) {
   }
   return means;
 }
+
+// First level characteristics of a list of numbers.
+stats.prototype.firstLevelStats = function(distrib) {
+  var n = distrib.length;
+  // Mean.
+  var mean = MyMath.mean(distrib);
+  print ('Mean: ' + mean);
+
+  // Skew.
+  var sumSq = 0;  // sum squared from mean.
+  var sumCu = 0;  // sum cubed from mean.
+  distrib.forEach(function(el) {
+    sumSq += Math.pow((el - mean), 2);
+    sumCu += Math.pow((el - mean), 3);
+  });
+  var numer = sumCu / n;
+  var denom = Math.pow(Math.pow(sumSq / n, 3), 0.5);
+  var skew = numer / denom;
+
+  print('Skew: ' + skew);
+
+  // Kurtosis.
+  sumSq = 0;
+  var sumQu = 0;
+  distrib.forEach(function(el) {
+    sumSq += Math.pow((el - mean), 2);
+    sumQu += Math.pow((el - mean), 4);
+  });
+  var kuNumer = sumQu / n;
+  var kuDenom = Math.pow((sumSq / n), 2);
+  var kurtosis = (kuNumer / kuDenom) - 3;
+  print ('Kurtosis: ' + kurtosis);
+
+};
 
 var shower = function() {
 };
@@ -76,20 +121,39 @@ shower.prototype.show = function(distrib) {
 
   // var mydata = [];
   // mydata.push({'letter': 'A', 'frequency': 0.2});
-  barchart.renderBars(mydata);
+  barchart.renderBars(mydata, 'canvas');
 };
 
 var ctrl = {};
 
+ctrl.clearEls = function() {
+  $('#canvas').html('');
+};
+
+// returns an object {trials: number, n: number}
+ctrl.getInput = function() {
+  var trials = parseInt($('#trials').val());
+  var n = parseInt($('#samples').val());
+  return {
+    'trials': trials,
+    'n': n
+  };
+}
+
 ctrl.init = function() {
-  var origDistrib = [1, 1, 1, 1, 1, 1, 1, 2, 2, 4, 4, 4, 4, 4, 4, 4, 4, 4]; 
+  ctrl.clearEls();
+  var myInput = ctrl.getInput();
+
+  var origDistrib = [1, 1, 1, 1, 1, 1, 1, 2, 2, 4, 4, 4, 4, 4, 4, 4, 4, 4, 10, 10, 10, 10, 10]; 
   //var origDistrib = [1, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 2, 2, 2, 12, 1, 10]; 
   var show0 = new shower();
   show0.show(origDistrib);
 
   var woah = new stats(origDistrib);
-  var distrib = woah.sampleDistribution(100000, 30);
+  var distrib = woah.sampleDistribution(myInput.trials, myInput.n);
   show0.show(distrib);
+  // Get first level characteristics.
+  woah.firstLevelStats(distrib);
 };
 
 $(document).ready(ctrl.init);
