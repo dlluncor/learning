@@ -140,12 +140,28 @@ ctrl.getInput = function() {
   };
 }
 
+ctrl.getOriginalDistribution = function() {
+  var distribCsv = $('#distrib').val();
+  var els = distribCsv.split(',');
+  var distrib = [];
+  els.forEach(function(el) {
+    distrib.push(parseInt(el));
+  });
+  return distrib;
+};
+
 ctrl.init = function() {
+ var distrib = [1, 1, 1, 1, 1, 1, 1, 2, 2, 4, 4, 4, 4, 4, 4, 4, 4, 4, 10, 10, 10, 10, 10]; 
+ var distribStr = distrib.join(',');
+ $('#distrib').val(distribStr);
+ ctrl.runStats();
+};
+
+ctrl.runStats = function() {
   ctrl.clearEls();
   var myInput = ctrl.getInput();
 
-  var origDistrib = [1, 1, 1, 1, 1, 1, 1, 2, 2, 4, 4, 4, 4, 4, 4, 4, 4, 4, 10, 10, 10, 10, 10]; 
-  //var origDistrib = [1, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 2, 2, 2, 12, 1, 10]; 
+  var origDistrib = ctrl.getOriginalDistribution();   
   var show0 = new shower();
   show0.show(origDistrib);
 

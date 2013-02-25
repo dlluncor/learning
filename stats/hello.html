@@ -8,10 +8,13 @@
     <script src="stats.js" type="text/javascript"></script>
   </head>
   <div>
+    <div>
+      <span>Distribution:</span> <input type="text" id="distrib" value="">
+    </div>
     <span>Trials:</span><input type="text" id="trials" value="10000">
     <span>Samples (n):</span><input type="text" id="samples" value="10">
 
-    <input type="button" id="runTrial" value="Run" onclick="ctrl.init();">
+    <input type="button" id="runTrial" value="Run" onclick="ctrl.runStats();">
   </div>
   <div id="canvas">
   </div>
