@@ -82,6 +82,24 @@ Stats.getDistributions = function(sampleMeanInfos) {
   });
 };
 
+// Gets the critical t value (in standard deviations) given
+// a degree of freedom and a p_value.
+Stats.getCriticalT = function(df, p_value) {
+  var critical_t = 0;
+  // External dependency.
+  ttable.forEach(function(tObj) {
+    // Keeps going if the p value is the same and it hasn't hit
+    // the degree of freedom limit yet.
+    if (tObj.df <= df && p_value == tObj.p_value) {
+      critical_t = tObj.critical_t;
+    }
+  });
+  if (critical_t == 0) {
+    throw Error('No critical t value found');
+  }
+  return critical_t;
+};
+
 // First level characteristics of a list of numbers.
 Stats.firstLevelStats = function(distrib) {
   var n = distrib.length;
@@ -123,8 +141,9 @@ Stats.secondLevelStats = function(sampleMeanInfos, actualMean) {
   // Need samples taken, n, and mean of samples.
 
   // Number of times we estimated the mean was within our range
-  // correctly.
+  // correctly using zscores.
   var numTimesInRange = 0;
+  var numTimesTvalueInRange = 0;
 
   sampleMeanInfos.forEach(function(sampleMeanInfo) {
     var n = sampleMeanInfo.n;
@@ -132,7 +151,7 @@ Stats.secondLevelStats = function(sampleMeanInfos, actualMean) {
     var stdevOfSamplingDistrib = s / Math.sqrt(n);
     var mu_sampleMean = sampleMeanInfo.sampleMean;
 
-    // Compute 95% confidence your estimate falls in this range.
+    // Compute 95% confidence your estimate falls in this range using z-table.
     var oneSideRange = 1.96 * stdevOfSamplingDistrib;
     var lowerRange = mu_sampleMean - oneSideRange;
     var upperRange = mu_sampleMean + oneSideRange;
@@ -145,9 +164,20 @@ Stats.secondLevelStats = function(sampleMeanInfos, actualMean) {
       text += ' NO';
     }
     //print (text);
+
+    var critical_t = Stats.getCriticalT(n - 1, 0.05);
+    oneSideRange = critical_t * stdevOfSamplingDistrib;
+    lowerRange = mu_sampleMean - oneSideRange;
+    upperRange = mu_sampleMean + oneSideRange;
+    isMeanInRange = MyMath.isMeanWithinRange(lowerRange, upperRange, actualMean);
+
+    if (isMeanInRange) {
+      numTimesTvalueInRange += 1;
+    }  
   });
 
-  print ('Prob predicted correct: ' + (numTimesInRange / sampleMeanInfos.length) * 100);
+  print ('Prob predicted correct using z-score 95%: ' + (numTimesInRange / sampleMeanInfos.length) * 100);
+  print ('Prob predicted correct using t-table 95%: ' + (numTimesTvalueInRange / sampleMeanInfos.length) * 100);
 }
 
 var Shower = function() {
