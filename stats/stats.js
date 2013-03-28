@@ -34,6 +34,29 @@ MyMath.isMeanWithinRange = function(lower, upper, meanVal) {
   return true;
 };
 
+// Parses csv inputted.
+// Outputs an object of {rowId: [val0, val1, val2]}
+var MyCsv = {};
+MyCsv.parseCsv = function(text) {
+  var lines = text.split('\n');
+  var groupId = 0;
+  var groupObj = {};
+  lines.forEach(function(line) {
+    var trimLine = $.trim(line);
+    if (trimLine !== '') {
+      var numberStrs = trimLine.split(',');
+      var numberVals = numberStrs.map(function(number) {
+        return parseFloat(number);
+      });
+      groupObj[groupId] = numberVals;
+      groupId++;
+    }
+  });
+  return groupObj;
+};
+
+///////////// End of utility functions.
+
 var Stats = {};
 
 Stats = function(distrib) {
@@ -221,14 +244,14 @@ Shower.prototype.show = function(distrib) {
   barchart.renderBars(mydata, 'canvas');
 };
 
-var ctrl = {};
+var oneDistribCtrl = {};
 
-ctrl.clearEls = function() {
+oneDistribCtrl.clearEls = function() {
   $('#canvas').html('');
 };
 
 // returns an object {trials: number, n: number}
-ctrl.getInput = function() {
+oneDistribCtrl.getInput = function() {
   var trials = parseInt($('#trials').val());
   var n = parseInt($('#samples').val());
   return {
@@ -237,7 +260,7 @@ ctrl.getInput = function() {
   };
 }
 
-ctrl.getOriginalDistribution = function() {
+oneDistribCtrl.getOriginalDistribution = function() {
   var distribCsv = $('#distrib').val();
   var els = distribCsv.split(',');
   var distrib = [];
@@ -247,19 +270,19 @@ ctrl.getOriginalDistribution = function() {
   return distrib;
 };
 
-ctrl.init = function() {
+oneDistribCtrl.init = function() {
  var distrib = [1, 1, 1, 1, 1, 1, 1, 2, 2, 4, 4, 4, 4, 4, 4, 4, 4, 4, 10, 10, 10, 10, 10]; 
  var distribStr = distrib.join(',');
  $('#distrib').val(distribStr);
- ctrl.runStats();
+ oneDistribCtrl.runStats();
 };
 
-ctrl.runStats = function() {
-  ctrl.clearEls();
-  var myInput = ctrl.getInput();
+oneDistribCtrl.runStats = function() {
+  oneDistribCtrl.clearEls();
+  var myInput = oneDistribCtrl.getInput();
 
   print('Population parameters:');
-  var origDistrib = ctrl.getOriginalDistribution();
+  var origDistrib = oneDistribCtrl.getOriginalDistribution();
   Stats.firstLevelStats(origDistrib);
   var origMean = MyMath.mean(origDistrib);
 
@@ -278,4 +301,4 @@ ctrl.runStats = function() {
   Stats.secondLevelStats(distribInfo, origMean);
 };
 
-$(document).ready(ctrl.init);
+$(document).ready(oneDistribCtrl.init);

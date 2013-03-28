@@ -42,6 +42,7 @@ def parseZscoreTsv(inputfile, outputfile):
 
   print_out_dict = simplejson.dumps(zscore_to_cdf)
   print print_out_dict
+  tsv.close()
   fd = open(outputfile, 'w')
   fd.write('var ztable = %s;' % print_out_dict)
   fd.close()
@@ -108,14 +109,108 @@ def parseTtableTsv(inputfile, outputfile):
 
   t_table_strs = [obj.AsDict() for obj in t_table_objects]
   print_out_arr = simplejson.dumps(t_table_strs)
+
+  tsv.close()
   fd = open(outputfile, 'w')
   fd.write('var ttable = %s;' % print_out_arr)
   fd.close()
 
 
+class FConstants(object):
+  ind_to_df = {
+    1: 1,
+    2: 2,
+    3: 3,
+    4: 4,
+    5: 5,
+    6: 6,
+    7: 7,
+    8: 8,
+    9: 9,
+    10: 10,
+    11: 12,
+    12: 15,
+    13: 20,
+    14: 24,
+    15: 30,
+    16: 40,
+    17: 60,
+    18: 120,
+    19: 150
+  }
+
+# Returns an object, {df2: {df1: critical_f}}
+def parseFtableTsv(inputfile, outputfile):
+  tsv = open(inputfile, 'r')
+
+  d = {}
+  row = 0
+  for line in tsv.readlines():
+    row += 1
+    els = line.split('\t')
+    els = _RemoveIllegals(els)
+    if not els:
+      continue
+    if els[0] == '/':
+      # Skip the first line.
+      continue
+
+    col = 0
+    df_2 = int(els[0])
+    d[df_2] = {}
+    for ind in xrange(len(els)):
+      if ind == 0:
+        continue
+      df_1 = FConstants.ind_to_df[ind]
+      critical_f = els[ind]
+      d[df_2][df_1] = critical_f
+      col += 1
+
+  print d[30][30]
+  print_out = simplejson.dumps(d)
+  fd = open(outputfile, 'w')
+  fd.write('var ftable = %s;' % print_out)
+  fd.close()
+
+
+class ChiSquareConstants(object):
+  ind_to_p = {
+    0: 0.05,
+    1: 0.01,
+    2: 0.001
+  }
+# Returns an object, {df: {p_value: critical_chi_square}}
+def parseChiSquaretableTsv(inputfile, outputfile):
+  tsv = open(inputfile, 'r')
+
+  d = {}
+  lines = tsv.readlines()
+  for row in xrange(len(lines)):
+    line = lines[row]
+    els = line.split('\t')
+    els = _RemoveIllegals(els)
+    if not els:
+      continue
+
+    df = row + 1
+    d[df] = {}
+    for ind in xrange(len(els)):
+      pval = ChiSquareConstants.ind_to_p[ind]
+      critical_val = els[ind]
+      d[df][pval] = critical_val
+
+  expected = d[10][0.05]
+  assert expected == '18.31'
+  print_out = simplejson.dumps(d)
+  fd = open(outputfile, 'w')
+  fd.write('var chisquaretable = %s;' % print_out)
+  fd.close()
+
 def main():
   #parseZscoreTsv('zscore.tsv', 'ztable.js')
-  parseTtableTsv('ttable.tsv', 'ttable.js')  
+  #parseTtableTsv('ttable.tsv', 'ttable.js')
+  #parseFtableTsv('ftable.tsv', 'ftable.js')
+  parseChiSquaretableTsv('chisquare.tsv', 'chisquaretable.js')
 
 if __name__ == '__main__':
   main()
