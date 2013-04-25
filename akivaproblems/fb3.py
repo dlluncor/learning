@@ -134,6 +134,7 @@ def costJobs(jobs):
   return actual_max 
 
 
+# Good linear programming solution.
 def costJobs2(jobs):
   seen = {}  # map of original time to index in cost table.
   for job in jobs:
@@ -160,6 +161,60 @@ def costJobs2(jobs):
       maxCost = costs[curTime]
   return maxCost
 
+
+def getMaxSpiral(board):
+  # Compute horiz sums.
+  print board
+  horizs = []
+  for rowI, row in enumerate(board):
+    horiz = []
+    for colI, col in enumerate(row):
+      if not horiz:
+        horiz.append(col)
+      else:
+        horiz.append(col + horiz[-1])
+    horizs.append(horiz)
+
+  # Vertical sums.
+  verts = []
+  for rowI, row in enumerate(board):
+    vert = [] 
+    for colI, col in enumerate(row):
+      if rowI == 0:
+        vert.append(col)
+      else:
+        vert.append(col + verts[rowI - 1][colI])
+    verts.append(vert)
+
+  nRows = len(board)
+  nCols = len(board[0])
+  maxN = min(nRows, nCols)
+  curSize = 1
+  while curSize < maxN:
+    # Find all spirals of that size.
+    for rowI, row in enumerate(board):
+      for colI, _ in enumerate(row):
+        if (curSize - 1 + rowI) < nRows and (curSize - 1 + colI) < nCols:
+          # Make sure I fit.
+          val0 =  
+    curSize += 2 
+
+
+
+def makeSpiralBoard(lines):
+  rows = []
+  for line in lines:
+    row = []
+    for col in line.split(','):
+      row.append(int(col))
+    rows.append(row)
+  return rows
+
+def testSpirals():
+  spirals = ['1,1,1', '-1,7,10', '10,8,10']
+  board = makeSpiralBoard(spirals)
+  print getMaxSpiral(board)
+
 def testSortJobs():
   #jobs = [(1, 2, 3), (3, 5, 10), (3, 7, 15)]
   #jobs = [(0,2,3), (1,3,5)]
@@ -175,6 +230,7 @@ def testSortJobs():
 def tests():
   #testBsearch()
   #testBoggle()
-  testSortJobs()
+  #testSortJobs()
+  testSpirals()
 
 tests()
