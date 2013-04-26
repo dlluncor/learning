@@ -157,11 +157,63 @@ def _ReversePolish():
     expr = raw_input()
     print _MakePolishExprDijk(expr)
 
+
+def _NextPalin(K):
+  # Find the next largest palindrome.
+  if K < 9:
+    return K + 1
+  Kstr = str(K)
+  length = len(Kstr)
+  odd = length % 2 != 0
+  upto = length / 2
+  modifiedAtAll = False # Whether we modified any numbers.
+  Kstr = [char for char in Kstr]
+  for ind in xrange(1, upto + 1):
+    # Start from the inside out.
+    if odd:
+      left = upto - ind
+      right = upto + ind
+    else:
+      left = upto - ind
+      right = upto + ind - 1
+    leftStr = Kstr[left]
+    rightStr = Kstr[right]
+    if leftStr == rightStr:
+      continue
+    if modifiedAtAll:
+      # Make the numbers equal to the left one.
+      Kstr[right] = leftStr
+      continue
+    if leftStr > rightStr:
+      Kstr[right] = leftStr
+      modifiedAtAll = True
+      continue
+    if leftStr < rightStr:
+      leftValPlusOne = int(leftStr) + 1
+      Kstr[left] = str(leftValPlusOne)
+      Kstr[right] = str(leftValPlusOne)
+      modifiedAtAll = True
+
+  if not modifiedAtAll and odd:
+    Kstr[upto] = str(int(Kstr[upto]) + 1)
+  elif not modifiedAtAll and not odd:
+    Kstr[upto] = str(int(Kstr[upto]) + 1)
+    Kstr[upto-1] = str(int(Kstr[upto-1]) + 1)
+
+  Kasstr = ''.join(Kstr)
+  return int(Kasstr)
+
+def _NextPalindrome():
+  T = int(raw_input())
+  for _ in xrange(T):
+    num = int(raw_input())
+    print _NextPalin(num)
+
 def main():
   #_RevNumbers()
   #_MeanLife()
   #_FirstPrimes()
-  _ReversePolish()
-
+  #_ReversePolish()
+  _NextPalindrome()
 
 main()
