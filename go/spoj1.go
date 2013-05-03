@@ -1,6 +1,7 @@
 package main
 
 import (
+        //"code.google.com/p/gomock/gomock"
 	"bufio"
 	"fmt"
 	"math"
@@ -55,6 +56,11 @@ type Info struct {
   Dist int
 }
 
+type BitmapperI interface {
+  ReadInput(in *MyReader)
+  Solve() string 
+} 
+
 type Bitmapper struct {
   valueMap map[Point] *Info
   q *list.List
@@ -62,17 +68,17 @@ type Bitmapper struct {
   numCols int
 }
 
-func (b *Bitmapper) ReadInput(in *bufio.Reader) {
+func (b *Bitmapper) ReadInput(r *MyReader) {
   b.q = list.New()
   b.valueMap = make(map[Point] *Info)
-  line := rawInput(in)
+  line := r.Read()
   elements := strings.Split(line, " ")
   numRows, _ := strconv.Atoi(elements[0])
   numCols, _ := strconv.Atoi(elements[1])
   b.numRows = numRows
   b.numCols = numCols
   for i := 0; i < numRows; i++ {
-    colLine := rawInput(in)
+    colLine := r.Read()
     colArr := strings.Split(colLine, "")
     for j := 0; j < numCols; j++ {
       val, _ := strconv.Atoi(colArr[j])
@@ -88,11 +94,11 @@ func (b *Bitmapper) ReadInput(in *bufio.Reader) {
   }
 }
 
-func (b *Bitmapper) Solve() {
+func (b *Bitmapper) Solve() string {
   for ; b.q.Len() > 0; {
     // Pop from the front of the queue.
     el := b.q.Front()
-    p := el.Value.(Point)
+    p := el.Value.(Point) // a cast.
     b.q.Remove(el)
     curInfo := b.valueMap[p]
     newDistance := curInfo.Dist + 1
@@ -140,10 +146,31 @@ func (b *Bitmapper) Solve() {
     lines[i] = strings.Join(lineStrs, " ")
   }
   answer := strings.Join(lines, "\n")
-  fmt.Printf("%s", answer)
+  return answer
 }
 
- 
+
+func BitmapSolver(reader *MyReader, bm BitmapperI) string {
+  bm.ReadInput(reader)
+  return bm.Solve()
+} 
+
+// Create a reader interface so I test how someone reads lines.
+type Reader interface {
+  Read() string
+} 
+
+type MyReader struct {
+  reader *bufio.Reader
+}
+
+func NewMyReader(reader *bufio.Reader) *MyReader {
+  return &MyReader{reader}
+}
+
+func (r *MyReader) Read() string {
+  return rawInput(r.reader)
+}
 
 func rawInput(reader *bufio.Reader) string {
   line, _ := reader.ReadString('\n')
@@ -153,12 +180,13 @@ func rawInput(reader *bufio.Reader) string {
 
 func Bitmap() {
   in := bufio.NewReader(os.Stdin)
-  line := rawInput(in)
+  r := NewMyReader(in)
+  line := r.Read()
   T, _ := strconv.Atoi(line)
   for i := 0; i < T; i++ {
     bm := &Bitmapper{}
-    bm.ReadInput(in)
-    bm.Solve()
+    answer := BitmapSolver(r, bm)
+    fmt.Printf("%s", answer)
   }
 }
 
