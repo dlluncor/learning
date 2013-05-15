@@ -245,10 +245,48 @@ def Bitmap():
     except:
       pass
 
+def partySolver(budget, numParties):
+  costs = []
+  for i in xrange(budget + 1):
+    costs.append(0)
+  maxFun = 0
+  maxDollars = 0
+  for i in xrange(numParties):
+    line = raw_input()
+    els = line.split(" ")
+    nums = [int(el) for el in els]
+    cost = nums[0]
+    fun = nums[1]
+    maxBudgetToCheck = budget - cost
+    for k in xrange(maxBudgetToCheck, -1, -1):
+      curFun = costs[k]
+      if k != 0 and curFun == 0:
+        continue
+      newBudget = cost + k
+      possNewFun = curFun + fun
+      if costs[newBudget] < possNewFun:
+        costs[newBudget] = possNewFun
+        if possNewFun > maxFun:
+          maxFun = possNewFun
+          maxDollars = newBudget
+  
+  raw_input()
+  return '%d %d' % (maxDollars, maxFun)
+
+def Party():
+  while True:
+    line = raw_input()
+    if line == "0 0":
+      break
+    els = line.split(" ")
+    nums = [int(el) for el in els]
+    print partySolver(nums[0], nums[1])
+
 def main():
   #progression()
   #Inversions()
   #GirlBoys()
-  Bitmap()
+  #Bitmap()
+  Party()
 
 main()
