@@ -7,7 +7,7 @@ class El {
   public:
   	El(int);
   	El();
-    struct El *next;
+    struct El* next;
     int data;
   	string printList();
 };
