@@ -16,7 +16,9 @@
 
 using namespace std;
 
-bool DEBUG = 1;
+bool DEBUG = 0;
+int CYCLE = 1000;
+int STOP = 0;
 
 class Reader{
   public:
@@ -174,8 +176,11 @@ Node* GraphSearch(ExploredI* explored, FrontierI* frontier, SolverI* solver) {
   while (!frontier->IsEmpty()) {
   	count++;
   	Node* cur = frontier->Pop();
+  	if (STOP != 0 && STOP == count) {
+  		break;
+  	}
   	if (DEBUG) {
-  	  if (count % 1000 == 0) {
+  	  if (count % CYCLE == 0) {
   		  cout << cur->str() << '\n';
   	  }
   	}
@@ -214,7 +219,7 @@ Item::Item(string objIn, int valIn) {
 class CompareItem {
   public:
     bool operator() (const Item& x, const Item& y) const {
-      return x.val < y.val;
+      return x.val > y.val;
     }
 };
 
@@ -227,6 +232,8 @@ class Frontier: public FrontierI {
   	bool Contains(Node* n);
   	bool IsEmpty();
   	Node* Pop();
+  	int size();
+  	int guesses();
   private:
   	vector<Item> items;
   	map<string, Node*>stateToNode;
@@ -236,14 +243,21 @@ class Frontier: public FrontierI {
 Frontier::Frontier() {
   vector<Item> items;
   map<string, Node*>stateToNode;
-  int dbgCounter = 0;
+  dbgCounter = 0;
 }
 
 // Frontier.
 void Frontier::Add(Node* n) {
-  Item i0(n->state, n->h);
-  // TODO(dlluncor): calculate heuristic values for the node when adding it.
+  // Calculate heuristic values for the node when adding it.
   // and save it into the node.
+  if (n->parent != NULL) {
+  	n->f = n->parent->f + 1;
+  	n->g = Heuristic(n->state);
+  	n->h = n->f + n->g; // Combine the costs linearly.
+  }
+
+  Item i0(n->state, n->h);
+
   items.push_back(i0);
   stateToNode[n->state] = n;
   if (items.size() == 0) {
@@ -260,7 +274,7 @@ bool Frontier::Contains(Node* n) {
 
 bool Frontier::IsEmpty() {
 	dbgCounter++;
-	if (DEBUG && dbgCounter % 1000 == 0) {
+	if (DEBUG && dbgCounter % CYCLE == 0) {
 		cout << "Frontier states: " << items.size() << '\n';
 	}
 	return items.size() == 0;
@@ -271,6 +285,14 @@ Node* Frontier::Pop() {
 	pop_heap(items.begin(), items.end(), CompareItem());
 	items.pop_back();
 	return stateToNode[ret.obj];
+}
+
+int Frontier::size() {
+  return items.size();
+}
+
+int Frontier::guesses() {
+  return dbgCounter;
 }
 
 // Explored set.
@@ -317,7 +339,6 @@ int* SwapThem(int* board, int blankInd, int switchInd) {
 }
 
 vector<Node*> Solver::GetCandidates(Node* n) {
-	// TODO(dlluncor):
 	int* board = ToBoard(n->state);
 	// Find the blank board.
 	int blankInd = -1;
@@ -380,6 +401,9 @@ void Board::Solve() {
 	Node* goal = GraphSearch(e, f, s);
 	if (goal != NULL) {
 		cout << "Found goal with properties" << goal->str() << '\n';
+		cout << "# my steps: " << goal->f << '\n';
+		cout << "# guesses: " << f->guesses() << '\n';
+		cout << "# on frontier: " << f->size() << '\n';
 	} else {
 		cout << "Could not find goal it is empty. " << '\n';
 	}
