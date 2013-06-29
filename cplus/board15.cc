@@ -105,22 +105,24 @@ map<int, pair<int, int>> TILE_TO_LOC ({
   16: {3, 3},
  */
 
+// Better distance counts the number of steps to get a tile to a location.
 int H2Dist(string board) {
   int* els = ToBoard(board);
   int missing = 0;
   for (int i = 0; i < 4; ++i) {
   	for (int j = 0; j < 4; ++j) {
   		int k = i * 4 + j;
-  		if (els[k] != k + 1) {
-  			missing++;
+  		int val = els[k];
+  		int shouldBeRow = (val - 1) / 4;
+  		int shouldBeCol = (val - 1) % 4;
+  		missing = missing + abs(shouldBeRow - i) + abs(shouldBeCol - j);
   		}
-  	}
-  }	
+  }
   return missing;
 }
 
 int Heuristic(string board) {
-	return H2Dist(board);
+	return H1Dist(board);
 }
 
 
@@ -413,7 +415,8 @@ void tests() {
 	string board = "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16";
 	assert(board == FromBoard(ToBoard(board)));
 	assert(0 == Heuristic(board));
-	assert(2 == Heuristic("1 3 2 4 5 6 7 8 9 10 11 12 13 14 15 16"));
+	assert(2 == H1Dist("3 2 1 4 5 6 7 8 9 10 11 12 13 14 15 16"));
+	assert(4 == H2Dist("3 2 1 4 5 6 7 8 9 10 11 12 13 14 15 16"));
 	string board1 = "16 2 3 4 5 6 7 8 9 10 11 12 13 14 15 1";
 	assert(board1.compare(FromBoard(SwapThem(ToBoard(board), 15, 0))) == 0);
 }
