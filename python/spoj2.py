@@ -210,12 +210,18 @@ def HouseDonations():
     print _MaxDonations(nums)
 
 
+def Crypto1():
+  import datetime
+  num = int(raw_input())
+  print datetime.datetime.fromtimestamp(math.sqrt(num * 4000000007))
+
 def main():
   #Pizza()
   #GreatBall()
   #InvTriangle()
   #Trigraph()
   #Tour()
-  HouseDonations()
+  #HouseDonations()
+  Crypto1()
 
 main()

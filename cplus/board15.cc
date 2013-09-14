@@ -14,10 +14,13 @@
 // Tests.
 #include <assert.h>
 
+// My code.
+#include "board15.h"
+
 using namespace std;
 
-bool DEBUG = 0;
-int CYCLE = 1000;
+bool DEBUG = 1;
+int CYCLE = 10000;
 int STOP = 0;
 
 class Reader{
@@ -29,6 +32,7 @@ class Reader{
 Reader::Reader() {}
 
 string Reader::Read() {
+  //sayHi();
 	string name;
 	getline(cin, name);
 	return name;
@@ -84,6 +88,37 @@ int H1Dist(string board) {
   return missing;
 }
 
+class Node {
+  public:
+    Node(string state);
+    int f; // how many steps to get here.
+    int g; // heuristic component.
+    int h; // sum of f and g.
+    string state;
+    Node* parent; // who I came from.
+    string str();
+};
+
+class ExploredI {
+  public:
+    virtual void Add(Node* n)=0;
+    virtual bool Contains(Node* n)=0;
+};
+
+class FrontierI {
+  public:
+    virtual void Add(Node* n)=0;
+    virtual bool Contains(Node* n)=0;
+    virtual bool IsEmpty()=0;
+    virtual Node* Pop()=0;
+};
+
+class SolverI {
+  public:
+    virtual bool IsGoal(Node* n)=0;
+    virtual vector<Node*> GetCandidates(Node* n)=0;
+};
+
 /*
 map<int, pair<int, int>> TILE_TO_LOC ({
   make_pair(1, make_pair(0, 0))
@@ -122,22 +157,11 @@ int H2Dist(string board) {
 }
 
 int Heuristic(string board) {
-	return H1Dist(board);
+	return H2Dist(board);
 }
 
 
 // A*, graph utility functions.
-
-class Node {
-  public:
-  	Node(string state);
-  	int f; // how many steps to get here.
-  	int g; // heuristic component.
-  	int h; // sum of f and g.
-  	string state;
-  	Node* parent; // who I came from.
-  	string str();
-};
 
 Node::Node(string stateI) {
   state = stateI;
@@ -152,26 +176,6 @@ string Node::str() {
 	s << " f: " << f << " g: " << g << " h: " << h << " state: " << state;
 	return s.str();
 }
-
-class ExploredI {
-  public:
-    virtual void Add(Node* n)=0;
-    virtual bool Contains(Node* n)=0;
-};
-
-class FrontierI {
-  public:
-  	virtual void Add(Node* n)=0;
-  	virtual bool Contains(Node* n)=0;
-  	virtual bool IsEmpty()=0;
-  	virtual Node* Pop()=0;
-};
-
-class SolverI {
-  public:
-  	virtual bool IsGoal(Node* n)=0;
-  	virtual vector<Node*> GetCandidates(Node* n)=0;
-};
 
 Node* GraphSearch(ExploredI* explored, FrontierI* frontier, SolverI* solver) {
   int count = 0;
@@ -236,10 +240,11 @@ class Frontier: public FrontierI {
   	Node* Pop();
   	int size();
   	int guesses();
+  	Node* get(Node* n); // return the actual node which corresponds to this..
   private:
   	vector<Item> items;
   	map<string, Node*>stateToNode;
-  	int dbgCounter; 
+  	int dbgCounter;
 };
 
 Frontier::Frontier() {
@@ -272,6 +277,10 @@ void Frontier::Add(Node* n) {
 
 bool Frontier::Contains(Node* n) {
 	return stateToNode.find(n->state) != stateToNode.end();
+}
+
+Node* Frontier::get(Node* n) {
+	return stateToNode[n->state];
 }
 
 bool Frontier::IsEmpty() {
@@ -322,9 +331,16 @@ bool Explored::Contains(Node* n) {
 // Solver.
 class Solver: public SolverI {
   public:
+  	Solver(Frontier* frontierIn);
   	bool IsGoal(Node* n);
   	vector<Node*> GetCandidates(Node* n);
+  private:
+  	Frontier* frontier;
 };
+
+Solver::Solver(Frontier* frontierIn) {
+	frontier = frontierIn;
+}
 
 bool Solver::IsGoal(Node* n) {
 	return Heuristic(n->state) == 0;
@@ -364,6 +380,21 @@ vector<Node*> Solver::GetCandidates(Node* n) {
       	cands.push_back(cand);
       }
     }
+ 
+    /*
+    // If we got to these candidates through a better state update their f
+    // or how many steps to get to them.
+    for (int j = 0; j < cands.size(); ++j) {
+    	if (frontier->Contains(cands[j])) {
+          Node* actualCand = frontier->get(cands[j]);
+          if (actualCand->f > n->f + 1) {
+          	//cout << "Better path to a candidate:\n";
+          	actualCand->f = n->f + 1;
+          	actualCand->parent = n;
+          }
+    	}
+    }*/
+
 	return cands;
 }
 
@@ -395,8 +426,8 @@ void Board::Create(Reader* r) {
 }
 
 void Board::Solve() {
-	Solver* s = new Solver();
 	Frontier* f = new Frontier();
+    Solver* s = new Solver(f);
     Explored* e = new Explored();
     Node* initial = new Node(board);
     f->Add(initial);
