@@ -1,0 +1,9 @@
+exec: \
+compile
+	./board15
+
+compile: \
+board15.cc
+	g++ board15.h board15.cc -o board15
+	echo "compiling board15.cc"
+	touch compile
