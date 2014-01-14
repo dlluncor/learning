@@ -1,5 +1,6 @@
 
 import math
+import sys
 
 class Pizzaer(object):
 
@@ -215,6 +216,13 @@ def Crypto1():
   num = int(raw_input())
   print datetime.datetime.fromtimestamp(math.sqrt(num * 4000000007))
 
+import struct
+
+def NumberCombine():
+  # Combine two numbers and then get their value back.
+  print sys.getsizeof(12)
+  print struct.calcsize(2)
+ 
 def main():
   #Pizza()
   #GreatBall()
@@ -222,6 +230,7 @@ def main():
   #Trigraph()
   #Tour()
   #HouseDonations()
-  Crypto1()
+  #Crypto1()
+  NumberCombine()
 
 main()
