@@ -38,6 +38,7 @@ struct Bet {
 
 typedef string (*BetNext)(int die0, int die1, bool is_on);
 typedef string (*BetNextPass)(int on_num, int die0, int die1, bool is_on); // Bets that depend on the "ON" position.
+typedef float (*BetOddsPass) (int on_num);
 typedef string BetName;
 
 class Craps : public Game {
@@ -61,5 +62,6 @@ class Craps : public Game {
   map<BetName, BetNext> name_to_next;
   map<BetName, BetNextPass> name_to_next_pass;
   map<BetName, float> name_to_odds;
+  map<BetName, BetOddsPass> name_to_odds_pass;
 };
 #endif // _LESSONS

@@ -49,19 +49,6 @@ void Craps::Roll() {
   }
 }
 
-// Scale the payout value based on what was rolled.
-float ScaleOdds(float value, int rolled) {
-  if (rolled == 6 || rolled == 8) {
-    return value * 7 / 6;
-  }
-  if (rolled ==  5 || rolled == 9) {
-    return value * 7 / 5;
-  }
-  if (rolled = 4 || rolled == 10) {
-    return value * 9 / 5;
-  }
-}
-
 // Yo (11) or 2 and 1 (3) give 15 to 1 odds when playing the field.
 float ScaleHardSumBet(float value) {
   return value * 15;
@@ -179,6 +166,19 @@ void Craps::Pay(int player_num, float amount) {
   cout << "Paying player " << player_num << " $" << amount << "\n";
 }
 
+// Utils.
+float RolledToOdds(int on_num) {
+  if (on_num == 6 || on_num == 8) {
+    return 7 / 6;
+  }
+  if (on_num ==  5 || on_num == 9) {
+    return 7 / 5;
+  }
+  if (on_num = 4 || on_num == 10) {
+    return 9 / 5;
+  }
+}
+
 // Win predicates.
 
 // Three types of bets need to organize them!
@@ -204,14 +204,18 @@ string PassNext(int on_num, int die0, int die1, bool is_on) {
   return "";
 }
 
+float PassOdds(int on_num) {
+  return RolledToOdds(on_num);
+}
+
 void Craps::Init() {
   // Odds predicates (for payout). I think they get more complicated than this....
   name_to_odds = {
     {"hardTwo", 30.0}
   };
-  /*name_to_odds_pass = {
-    {},
-  };*/
+  name_to_odds_pass = {
+    {"pass", *PassOdds},
+  };
 
   // Next state predicates (only ones that matter), they determine whether you win as well.
   name_to_next = {
