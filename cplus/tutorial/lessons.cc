@@ -17,35 +17,7 @@ void Craps::Roll() {
   cout << "Rolled " << val0 << ", " << val1 << "\n";
   
   for (auto& bet : bets) {
-    if (bet.removed) {
-      continue;
-    }
-    Process(bet, val0, val1);
-  }
-
-  int sum = val0 + val1;
-  // Go to next state.
-  if (!is_on) {
-    if (sum == 2 || sum == 3 || sum == 12) {
-      cout << "CRAPS rolled " << sum << "\n";
-    }
-    if (sum == 7 || sum == 11) {
-      cout << "WON roll again! " << sum << "\n";
-    }
-    is_on = true;  // Now we are on.
-    on_value = sum;
-    cout << "ON with value " << sum << "\n";
-  } else {
-    // What is the on value?
-    if (on_value == sum) {
-      cout << "HIT the mark payout for all! " << sum << "\n";
-      is_on = false;
-    } else if (sum == 7) {
-      cout << "CRAPS rolled " << sum << "\n";
-      is_on = false;
-    } else {
-      cout << "Rolled " << sum << " just paying." << "\n";
-    }
+    //Process(bet, val0, val1);
   }
 }
 
@@ -77,76 +49,6 @@ float ScaleHardHit(float value, int die) {
 
 bool InField(float sum) {
   return sum == 2 || sum == 3 || sum == 4 || sum == 9 || sum == 10 || sum == 11 || sum == 12;
-}
-
-void Craps::Process(Bet bet, int val0, int val1) {
-  cout << "Processing bet: " << bet.name << "\n";
-  int sum = val0 + val1;
-  if (!is_on) {
-    // Start of game, 2, 3, 12 is craps.
-    if (sum == 2 || sum == 3 || sum == 12) {
-      // TODO(dlluncor): Remove bet.
-      bet.removed = true;
-      return;
-    }
-    // 7 or 11 win money.
-    if (sum == 7 || sum == 11) {
-      // Get your value back, keep bet.
-      Pay(bet.player, bet.value);
-      bet.removed = true;
-      return;
-    }
-    // 4, 5, 6, 8, 9, 10 ON.
-    return;
-  } else {
-    // The button is "ON"
-    if (sum == on_value) {
-      // Hit the ON!
-      // Pay based on the pass and BEHIND pass line.
-      if (bet.name == "pass") {
-        Pay(bet.player, bet.value);
-        bet.removed = true;
-        return;
-      } else if (bet.name == "behind") {
-        // TODO(dlluncor): implement BEHIND pass line.
-        Pay(bet.player, ScaleOdds(bet.value, sum));
-        bet.removed = true;
-      }
-    } else {
-      // Process bets on single numbers.
-      if (bet.for_num != 0 && sum == bet.for_num) {
-        cout << "Hit " << sum << " for player " << bet.player << "\n";
-        Pay(bet.player, ScaleOdds(bet.value, sum));
-      }
-    }
-  }
-
-  // Process the field bet.
-  if (bet.name == "three" && sum == 3) {
-    cout << "Hit hard 3 " << sum << " for player " << bet.player << "\n";
-    Pay(bet.player, ScaleHardSumBet(bet.value));
-    bet.removed = true;
-  }
-  if (bet.name == "eleven" && sum == 11) {
-    cout << "Hit hard 11 " << sum << " for player " << bet.player << "\n";
-    Pay(bet.player, ScaleHardSumBet(bet.value));
-    bet.removed = true;  
-  }
-  if (bet.name == "field" && InField(sum)) {
-    cout << "Hit the field " << sum << " for player " << bet.player << "\n";
-    Pay(bet.player, ScaleFieldBet(bet.value));
-    bet.removed = true;
-  }
-
-  // Process the middle bets.
-  if (bet.hard_num != 0) {
-    // Check to see if they made the bet and ALWAYS revoke their bet.
-    if (val0 == bet.hard_num && val1 == bet.hard_num) {
-      cout << "HARD hit " << sum << " for player " << bet.player << "\n";
-      Pay(bet.player, ScaleHardHit(bet.value, bet.hard_num));
-    }
-    bet.removed = true;
-  }
 }
 
 // Bet has the following components:
@@ -244,7 +146,10 @@ Craps::~Craps() {
 // Players can instigate this.
 void Craps::AddBet(Bet bet) {
   cout << "Added bet " << bet.name << "\n";
-  bets.push_back(bet);
+  char* str;
+  sprintf(str, "%s**%d", bet.name.c_str(), bet.player);
+  string key(str);
+  bets[key] = bet;
 }
 
 // Game state.
