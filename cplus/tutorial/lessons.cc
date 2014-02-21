@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include "lessons.h"
 #include <map>
+#include <sstream>
 using namespace std;
 
 int Die::Roll() {
@@ -9,18 +10,7 @@ int Die::Roll() {
   return 1 + (rand() % 5);
 }
 
-// Copy constructors and const pass by reference.
-
-void Craps::Roll() {
-  int val0 = die0->Roll();
-  int val1 = die1->Roll();
-  cout << "Rolled " << val0 << ", " << val1 << "\n";
-  
-  for (auto& bet : bets) {
-    //Process(bet, val0, val1);
-  }
-}
-
+/*
 // Yo (11) or 2 and 1 (3) give 15 to 1 odds when playing the field.
 float ScaleHardSumBet(float value) {
   return value * 15;
@@ -50,6 +40,7 @@ float ScaleHardHit(float value, int die) {
 bool InField(float sum) {
   return sum == 2 || sum == 3 || sum == 4 || sum == 9 || sum == 10 || sum == 11 || sum == 12;
 }
+*/
 
 // Bet has the following components:
 // Name: "yo"
@@ -63,10 +54,6 @@ bool InField(float sum) {
 // the player "win" which means pay and take off, or "winStay" which means pay but keep bet on table.
 
 // How to represent a push on the current bet?
-
-void Craps::Pay(int player_num, float amount) {
-  cout << "Paying player " << player_num << " $" << amount << "\n";
-}
 
 // Utils.
 float RolledToOdds(int on_num) {
@@ -110,8 +97,80 @@ float PassOdds(int on_num) {
   return RolledToOdds(on_num);
 }
 
+bool IsPassBet(string bet_name) {
+  return bet_name == "pass";  // TODO(dlluncor): Update.
+}
+
+void Craps::Roll() {
+  int val0 = die0->Roll();
+  int val1 = die1->Roll();
+  cout << "Rolled " << val0 << ", " << val1 << "\n";
+  
+  for (auto& bet_tup : bets) {
+    auto& bet = bet_tup.second;
+    auto& bet_key = bet_tup.first;
+    string name = bet.name;
+    // Determine the next state for each bet.
+    string next_state;
+    if (IsPassBet(name)) {
+      // Or other pass bets process here...
+      next_state = name_to_next_pass[name](on_num, val0, val1, is_on);
+    } else {
+      next_state = name_to_next[name](val0, val1, is_on);
+    }
+    printf("Bet: %s Next state: %s\n", bet.name.c_str(), next_state.c_str());
+    
+    // Determine what to do with money.
+    if (next_state == "win" || next_state == "win_stay") {
+      float payout_multiplier;
+      if (IsPassBet(name)) {
+        payout_multiplier = name_to_odds_pass[name](on_num);
+      } else {
+        payout_multiplier = name_to_odds[name];
+      }
+      if (next_state == "win") {
+        // Pay odds + original bet, as well as remove bet, require the player to place a bet
+        // again.
+        Pay((payout_multiplier*bet.value) + bet.value, bet.player);
+        bets.erase(bet_key);
+      } else {
+        // Pay the player their winnings but don't remove their bet.
+        Pay((payout_multiplier*bet.value), bet.player);
+      }
+    } else if (next_state == "lose") {
+      // Remove the bet!
+      bets.erase(bet_key);
+    } else if (next_state != "") {
+      // Then we need to transition the money to another bet (COME) bet.
+      bet.name = next_state;  // TODO: Will this actually work?? Or a bug??
+    }
+    // Or don't do anything.
+  }
+
+  string next_button_state = PassNext(on_num, val0, val1, is_on);
+  if (next_button_state == "win" || next_button_state == "lose") {
+    on_num = 0;
+    if (is_on) {
+      is_on = false;
+    }
+    // If you were off you stay off.
+  } else {
+    // If you were on do nothing.
+    if (!is_on) {
+      is_on = true;  // Didn't craps or hit a bingo.
+      on_num = val0 + val1;
+    }
+  }
+}
+
+void Craps::Pay(float amount, PlayerId player) {
+  cout << "Paying player " << player << ": $" << amount << "\n";
+  bankrolls[player] += amount;
+}
+
 void Craps::Init() {
   // Odds predicates (for payout). I think they get more complicated than this....
+  // TODO(dlluncor): Fill in more next states and odds.
   name_to_odds = {
     {"hardTwo", 30.0}
   };
@@ -135,6 +194,7 @@ Craps::Craps() {
   die0 = new Die();
   die1 = new Die();
   // Initialize betting maps with rules.
+  Init();
 }
 
 Craps::~Craps() {
@@ -143,13 +203,47 @@ Craps::~Craps() {
   delete die1;
 }
 
+void Craps::InspectState() {
+  printf("is_on:%d on_num:%d\n", is_on, on_num);
+  printf("Bets:\n");
+  for (auto& bet_tup: bets) {
+    auto& bet = bet_tup.second;
+    printf("  Bet %s by player %d for $%.1f\n", bet.name.c_str(), bet.player, bet.value);
+  }
+  printf("Players:\n");
+  for (auto& paid_tup: paid) {
+    auto& player = paid_tup.first;
+    printf("  Player %d put in $%.1f and has %.1f\n", player, paid_tup.second, bankrolls[player]);
+  }
+}
+
+void Craps::Buyin(PlayerId player, float amount) {
+  bool new_player = paid.find(player) == paid.end();
+  if (new_player) {
+    paid[player] = amount;
+    bankrolls[player] = amount;
+  } else {
+    paid[player] = paid[player] + amount;
+    bankrolls[player] = bankrolls[player] + amount;
+  }
+}
+
+/*string Sprintf(const char* format, ...) {
+  char* str;
+  va_list args;
+  sprintf(str, format, args);
+  string key(str);
+  return key;
+}*/
+
 // Players can instigate this.
 void Craps::AddBet(Bet bet) {
-  cout << "Added bet " << bet.name << "\n";
   char* str;
-  sprintf(str, "%s**%d", bet.name.c_str(), bet.player);
-  string key(str);
-  bets[key] = bet;
+  stringstream key;
+  key << bet.name << "**" << bet.player;
+  bets[key.str()] = bet;
+  // Deduct from player's bankroll.
+  bankrolls[bet.player] -= bet.value;
 }
 
 // Game state.
@@ -188,13 +282,16 @@ int main() {
   //description();
   //Lessons();
   auto* craps = new Craps();
-    craps->AddBet(Bet{"pass", 0, 10.0});
+  craps->Buyin(0, 200);
+  craps->AddBet(Bet{"pass", 0, 10.0});
   string resp;
   while (true) {
     cout << "Type r (roll): ";
     cin >> resp;
     if (resp == "r") {
       craps->Roll();
+    } else if (resp == "i") {
+      craps->InspectState();
     } else {
       break;
     }

@@ -23,9 +23,12 @@ class Die {
   int Roll();
 };
 
+typedef string BetName;
+typedef int PlayerId;
+
 struct Bet {
-  string name;
-  int player;
+  BetName name;
+  PlayerId player;
   float value;
 };
 
@@ -33,24 +36,27 @@ typedef string (*BetNext)(int die0, int die1, bool is_on);
 // Bets that depend on the "ON" position.
 typedef string (*BetNextPass)(int on_num, int die0, int die1, bool is_on);
 typedef float (*BetOddsPass) (int on_num);
-typedef string BetName;
 
 class Craps : public Game {
  public:
    Craps();
    ~Craps();  // Only use virtual destructors when it has ANY virtual methods.
    void Roll();
+   void InspectState();
+   void Buyin(PlayerId player, float amount);
    void AddBet(Bet bet);
  private:
   void Init();
-  void Pay(int player_num, float amount);
+  void Pay(float amount, PlayerId player_num);
  	Die* die0;
  	Die* die1;
  	map<string, Bet> bets;
+  map<PlayerId, float> paid;  // How much each player has paid.
+  map<PlayerId, float> bankrolls; // How much each player currently has.
 
   // Internal state to game.
   bool is_on; // Game starts off, then ON given certain rules.
-  int on_value; // Value when table is "ON"
+  int on_num; // Value when table is "ON"
 
   map<BetName, BetNext> name_to_next;
   map<BetName, BetNextPass> name_to_next_pass;
