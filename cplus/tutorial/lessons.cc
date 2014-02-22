@@ -217,6 +217,12 @@ void Craps::InspectState() {
   }
 }
 
+void Craps::Decide() {
+  // Tell each player the state of the game to help them decide what bet to make next.
+  // Give them each of their bets and the previous and current state of their bet, and how much
+  // the bet is valued to them.
+}
+
 void Craps::Buyin(PlayerId player, float amount) {
   bool new_player = paid.find(player) == paid.end();
   if (new_player) {
@@ -279,8 +285,6 @@ void Lessons() {
 }
 
 int main() {
-  //description();
-  //Lessons();
   auto* craps = new Craps();
   craps->Buyin(0, 200);
   craps->AddBet(Bet{"pass", 0, 10.0});
@@ -292,6 +296,8 @@ int main() {
       craps->Roll();
     } else if (resp == "i") {
       craps->InspectState();
+    } else if (resp == "d") {
+      craps->Decide();
     } else {
       break;
     }

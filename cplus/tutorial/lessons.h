@@ -43,6 +43,7 @@ class Craps : public Game {
    ~Craps();  // Only use virtual destructors when it has ANY virtual methods.
    void Roll();
    void InspectState();
+   void Decide();  // inspect what the player should do next.
    void Buyin(PlayerId player, float amount);
    void AddBet(Bet bet);
  private:
