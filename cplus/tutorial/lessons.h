@@ -26,6 +26,14 @@ class Die {
 typedef string BetName;
 typedef int PlayerId;
 
+// Info needed about the board bet for the player to know how to bet next.
+struct BetInfo{
+  string prev_state; // previous state of the bet.
+  string next_state; // next state of the bet.
+  float prev_value;
+  float next_value;
+};
+
 struct Bet {
   BetName name;
   PlayerId player;
@@ -43,9 +51,11 @@ class Craps : public Game {
    ~Craps();  // Only use virtual destructors when it has ANY virtual methods.
    void Roll();
    void InspectState();
-   void Decide();  // inspect what the player should do next.
+   void Decide(PlayerId player);  // inspect what the player should do next.
    void Buyin(PlayerId player, float amount);
    void AddBet(Bet bet);
+   // Clears things like the last set of relevant bets for a player that changed.
+   void ClearPrevState();
  private:
   void Init();
   void Pay(float amount, PlayerId player_num);
@@ -59,9 +69,13 @@ class Craps : public Game {
   bool is_on; // Game starts off, then ON given certain rules.
   int on_num; // Value when table is "ON"
 
+  // To determine what happens to each bet next. The rules.
   map<BetName, BetNext> name_to_next;
   map<BetName, BetNextPass> name_to_next_pass;
   map<BetName, float> name_to_odds;
   map<BetName, BetOddsPass> name_to_odds_pass;
+
+  // To help each player decide what bet to make next.
+  map<PlayerId, vector<BetInfo>> last_changed_bets;
 };
 #endif // _LESSONS

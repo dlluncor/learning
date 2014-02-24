@@ -101,17 +101,29 @@ bool IsPassBet(string bet_name) {
   return bet_name == "pass";  // TODO(dlluncor): Update.
 }
 
+
+void Craps::ClearPrevState() {
+  for (auto& last_bets_kv: last_changed_bets) {
+    // Clear the set of bets associated with each player.
+    last_bets_kv.second.clear();
+  }
+}
+
 void Craps::Roll() {
+  ClearPrevState();
   int val0 = die0->Roll();
   int val1 = die1->Roll();
   cout << "Rolled " << val0 << ", " << val1 << "\n";
-  
   for (auto& bet_tup : bets) {
+    BetInfo bet_info;
     auto& bet = bet_tup.second;
     auto& bet_key = bet_tup.first;
     string name = bet.name;
+    bet_info.prev_state = name;
+    bet_info.prev_value = bet.value;
     // Determine the next state for each bet.
     string next_state;
+    float next_value;
     if (IsPassBet(name)) {
       // Or other pass bets process here...
       next_state = name_to_next_pass[name](on_num, val0, val1, is_on);
@@ -131,20 +143,30 @@ void Craps::Roll() {
       if (next_state == "win") {
         // Pay odds + original bet, as well as remove bet, require the player to place a bet
         // again.
-        Pay((payout_multiplier*bet.value) + bet.value, bet.player);
+        next_value = (payout_multiplier*bet.value) + bet.value;
+        Pay(next_value, bet.player);
         bets.erase(bet_key);
       } else {
         // Pay the player their winnings but don't remove their bet.
-        Pay((payout_multiplier*bet.value), bet.player);
+        next_value = (payout_multiplier*bet.value);
+        Pay(next_value, bet.player);
       }
     } else if (next_state == "lose") {
       // Remove the bet!
+      next_value = 0;
       bets.erase(bet_key);
     } else if (next_state != "") {
       // Then we need to transition the money to another bet (COME) bet.
       bet.name = next_state;  // TODO: Will this actually work?? Or a bug??
+      next_value = bet.value;
+    } else {
+      // Or don't do anything, so the next state is the prev state.
+      next_state = name;
+      next_value = bet.value;
     }
-    // Or don't do anything.
+    bet_info.next_state = next_state;
+    bet_info.next_value = next_value;
+    last_changed_bets[bet.player].push_back(bet_info);
   }
 
   string next_button_state = PassNext(on_num, val0, val1, is_on);
@@ -217,17 +239,25 @@ void Craps::InspectState() {
   }
 }
 
-void Craps::Decide() {
+void Craps::Decide(PlayerId player) {
   // Tell each player the state of the game to help them decide what bet to make next.
   // Give them each of their bets and the previous and current state of their bet, and how much
   // the bet is valued to them.
+  auto& bet_infos = last_changed_bets[player];
+  printf("Player %d had these bets changed: \n", player);
+  for (auto& bet_info: bet_infos) {
+    printf("  Prev: ($%.1f, %s). Current: ($%.1f, %s)\n", bet_info.prev_value, 
+      bet_info.prev_state.c_str(), bet_info.next_value, bet_info.next_state.c_str());
+  }
 }
 
 void Craps::Buyin(PlayerId player, float amount) {
+  // This is the only place where we "initialize a player".
   bool new_player = paid.find(player) == paid.end();
   if (new_player) {
     paid[player] = amount;
     bankrolls[player] = amount;
+    last_changed_bets[player] = {};
   } else {
     paid[player] = paid[player] + amount;
     bankrolls[player] = bankrolls[player] + amount;
@@ -297,7 +327,7 @@ int main() {
     } else if (resp == "i") {
       craps->InspectState();
     } else if (resp == "d") {
-      craps->Decide();
+      craps->Decide(0);
     } else {
       break;
     }
