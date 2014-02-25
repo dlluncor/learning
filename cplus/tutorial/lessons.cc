@@ -215,6 +215,7 @@ Craps::Craps() {
   srand(time(NULL));
   die0 = new Die();
   die1 = new Die();
+  next_player_id = 0;
   // Initialize betting maps with rules.
   Init();
 }
@@ -251,17 +252,20 @@ void Craps::Decide(PlayerId player) {
   }
 }
 
-void Craps::Buyin(PlayerId player, float amount) {
+PlayerId Craps::Register(Player* player) {
   // This is the only place where we "initialize a player".
-  bool new_player = paid.find(player) == paid.end();
-  if (new_player) {
-    paid[player] = amount;
-    bankrolls[player] = amount;
-    last_changed_bets[player] = {};
-  } else {
-    paid[player] = paid[player] + amount;
-    bankrolls[player] = bankrolls[player] + amount;
-  }
+  paid[next_player_id] = 0;
+  bankrolls[next_player_id] = 0;
+  last_changed_bets[next_player_id] = {};
+  next_player_id++;
+  cur_players[next_player_id] = player;
+  return next_player_id;
+}
+
+void Craps::Buyin(PlayerId player, float amount) {
+  //bool new_player = paid.find(player) == paid.end();
+  paid[player] = paid[player] + amount;
+  bankrolls[player] = bankrolls[player] + amount;
 }
 
 /*string Sprintf(const char* format, ...) {
@@ -280,6 +284,15 @@ void Craps::AddBet(Bet bet) {
   bets[key.str()] = bet;
   // Deduct from player's bankroll.
   bankrolls[bet.player] -= bet.value;
+}
+
+void Craps::RunStrategies() {
+  for (auto& player_kv: cur_players) {
+    Player* player = player_kv.second;
+    player->NextActions();
+    // Need to export the game state and set of bets relevant to this player for them
+    // to decide what to do next.
+  }
 }
 
 // Game state.
@@ -309,29 +322,62 @@ void Lessons() {
   // Will only destroy game.
   delete game;
   // Now when Game has a virtual destructor, it will call
-  // the actual type's destructor of craps.
+  // the actual type's destructor of Craps.
 }
 
 }
 
-int main() {
-  auto* craps = new Craps();
-  craps->Buyin(0, 200);
-  craps->AddBet(Bet{"pass", 0, 10.0});
+
+Player::Player(Game* game_, string name_, string strategy_) {
+  game = game_;
+  name = name_;
+  strategy = strategy_;
+}
+
+void Player::NextActions() {
+
+}
+
+void Player::set_id(PlayerId id_) {
+  id = id_;
+}
+
+/*
+  Person has an id associated with a game. When they get their id they can.
+  NextAction(prev_actions) // notification to do something about what just happened. Next round.
+  Lose()  // notification that they lost all money. Won't call NextAction here.
+*/
+
+void TestStrategyMain() {
+  Craps craps;
+  Player player0(&craps, "Joe", "iron cross");
+  PlayerId id = craps.Register(&player0);
+  player0.set_id(id);
+  craps.RunStrategies();
+}
+
+void CommandLineMain() {
+  Craps craps;
+  craps.Buyin(0, 200);
+  craps.AddBet(Bet{"pass", 0, 10.0});
   string resp;
   while (true) {
     cout << "Type r (roll): ";
     cin >> resp;
     if (resp == "r") {
-      craps->Roll();
+      craps.Roll();
     } else if (resp == "i") {
-      craps->InspectState();
+      craps.InspectState();
     } else if (resp == "d") {
-      craps->Decide(0);
+      craps.Decide(0);
     } else {
       break;
     }
   }
-  delete craps;
+}
+
+int main() {
+  //CommandLineMain();
+  TestStrategyMain();
   return 0;
 }
