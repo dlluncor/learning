@@ -2,48 +2,26 @@
 #include <stdlib.h>
 #include <assert.h>
 #include "lessons.h"
+#include "lib.h"
 #include <map>
 #include <sstream>
-using namespace std;
 
 // Stack traces.
+#include <string>
 #include <stdio.h>
 #include <execinfo.h>
 #include <signal.h>
 //#include <unistd.h>
 
-int Die::Roll() {
+namespace craps {
+
+using namespace std;
+using namespace lib;
+
+int RandomDie::Roll() {
   // Roll a value 1 to 6.
-  return 1 + (rand() % 5);
+  return 1 + (rand() % 6);
 }
-
-/*
-// Yo (11) or 2 and 1 (3) give 15 to 1 odds when playing the field.
-float ScaleHardSumBet(float value) {
-  return value * 15;
-}
-
-float ScaleFieldBet(float value) {
-  return value * 4;
-}
-
-float ScaleHardHit(float value, int die) {
-  if (die == 1) {
-    return value * 30;
-  } else if (die == 2) {
-    return value * 7;
-  } else if (die == 3) {
-    return value * 9;
-  } else if (die == 4) {
-    return value * 9;
-  } else if (die == 5) {
-    return value * 7;
-  } else if (die == 6) {
-    return value * 30;
-  }
-  return -1; // Should never get here.
-}
-*/
 
 bool InField(float sum) {
   return sum == 2 || sum == 3 || sum == 4 || sum == 9 || sum == 10 || sum == 11 || sum == 12;
@@ -70,9 +48,12 @@ float RolledToOdds(int on_num) {
   if (on_num ==  5 || on_num == 9) {
     return 7 / 5.0;
   }
-  if (on_num = 4 || on_num == 10) {
+  if (on_num == 4 || on_num == 10) {
     return 9 / 5.0;
   }
+  sprintf(OUT, "Warn!: Rolled to odds called with: %d", on_num);
+  Log(OUT, WARN);
+  return -1.0;
 }
 
 // Win predicates.
@@ -138,6 +119,10 @@ string EightNext(int on_num, int die0, int die1, bool is_on) {
 }
 
 float PassOdds(int on_num, int sum) {
+  if (on_num == 0) {
+    // We are not on, so its 1 to 1 whether we lose.
+    return 1.0;
+  }
   return RolledToOdds(on_num);
 }
 
@@ -168,7 +153,11 @@ void Craps::Roll() {
   ClearPrevState();
   int val0 = die0->Roll();
   int val1 = die1->Roll();
-  cout << "Rolled " << val0 << ", " << val1 << "\n";
+  sprintf(OUT, "Rolled %d, %d\n", val0, val1);
+  sprintf(OUT, "roll-%d", val0+val1);
+  cnt->Inc(OUT);
+  cnt->Inc("num-rolls");
+  Log(OUT, INFO);
   vector<string> remove_bets;  // list of keys for bets to remove if win or lose.
   for (auto& bet_tup : bets) {
     BetInfo bet_info;
@@ -186,8 +175,8 @@ void Craps::Roll() {
     } else {
       next_state = name_to_next[name](val0, val1, is_on);
     }
-    printf("Bet: %s Next state: %s\n", bet.name.c_str(), next_state.c_str());
-    
+    sprintf(OUT, "Bet: %s Next state: %s\n", bet.name.c_str(), next_state.c_str());
+    Log(OUT, INFO);
     // Determine what to do with money.
     if (next_state == "win" || next_state == "win_stay") {
       float payout_multiplier;
@@ -196,16 +185,13 @@ void Craps::Roll() {
       } else {
         payout_multiplier = name_to_odds[name];
       }
+      // Pay odds + original bet, as well as remove bet, require the player to place a bet
+      // again.
+      next_value = (payout_multiplier*bet.value) + bet.value;
+      Pay(next_value, bet.player);
       if (next_state == "win") {
-        // Pay odds + original bet, as well as remove bet, require the player to place a bet
-        // again.
-        next_value = (payout_multiplier*bet.value) + bet.value;
-        Pay(next_value, bet.player);
+        // Remove winning bets.
         remove_bets.push_back(bet_key);
-      } else {
-        // Pay the player their winnings but don't remove their bet.
-        next_value = (payout_multiplier*bet.value);
-        Pay(next_value, bet.player);
       }
     } else if (next_state == "lose") {
       // Remove the bet!
@@ -251,6 +237,10 @@ void Craps::Pay(float amount, PlayerId player) {
 }
 
 void Craps::Init() {
+  is_on = false;
+  on_num = 0;
+  next_player_id = 0;
+
   // Odds predicates (for payout). I think they get more complicated than this....
   // TODO(dlluncor): Fill in more next states and odds.
   name_to_odds = {
@@ -276,15 +266,21 @@ void Craps::Init() {
     {"Six", *SixNext},
     {"Eight", *EightNext}
   };
+
+  cnt = new MemCounter();
 }
 
 Craps::Craps() {
-  is_on = false; 
   srand(time(NULL));
-  die0 = new Die();
-  die1 = new Die();
-  next_player_id = 0;
+  die0 = new RandomDie();
+  die1 = new RandomDie();
   // Initialize betting maps with rules.
+  Init();
+}
+
+Craps::Craps(Die* die0_, Die* die1_) {
+  die0 = die0_;
+  die1 = die1_;
   Init();
 }
 
@@ -314,10 +310,12 @@ void Craps::Decide(PlayerId player) {
   // Give them each of their bets and the previous and current state of their bet, and how much
   // the bet is valued to them.
   auto& bet_infos = last_changed_bets[player];
-  printf("Player %d had these bets changed: \n", player);
+  sprintf(OUT, "Player %d had these bets changed: \n", player);
+  Log(OUT, INFO);
   for (auto& bet_info: bet_infos) {
-    printf("  Prev: ($%.1f, %s). Current: ($%.1f, %s)\n", bet_info.prev_value, 
+    sprintf(OUT, "  Prev: ($%.1f, %s). Current: ($%.1f, %s)\n", bet_info.prev_value, 
       bet_info.prev_state.c_str(), bet_info.next_value, bet_info.next_state.c_str());
+    Log(OUT, INFO);
   }
 }
 
@@ -337,38 +335,31 @@ void Craps::Buyin(PlayerId player, float amount) {
   bankrolls[player] = bankrolls[player] + amount;
 }
 
-/*string Sprintf(const char* format, ...) {
-  char* str;
-  va_list args;
-  sprintf(str, format, args);
-  string key(str);
-  return key;
-}*/
-
 // Players can instigate this.
 void Craps::AddBet(Bet bet) {
-  char* str;
   stringstream key;
   key << bet.name << "**" << bet.player;
-  printf("Player %d added bet: %s\n", bet.player, bet.name.c_str());
+  sprintf(OUT, "Player %d added bet: %s\n", bet.player, bet.name.c_str());
+  Log(OUT, INFO);
   bets[key.str()] = bet;
   // Deduct from player's bankroll.
   bankrolls[bet.player] -= bet.value;
 }
 
-void Craps::RunStrategies() {
-  GameState game_state;
-  game_state.is_on = is_on;
-  game_state.on_num = on_num;
-  for (auto& player_kv: cur_players) {
-    Player* player = player_kv.second;
-    PlayerId player_id = player_kv.first;
-    PlayerDecision decision(game_state, last_changed_bets[player_id],
-      bankrolls[player_id]);
-    player->NextActions(decision);
-    // Need to export the game state and set of bets relevant to this player for them
-    // to decide what to do next.
+void Craps::Summary() {
+  // Keep track of number of 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 rolls we see.
+  int num_rolls = cnt->Int("num-rolls");
+  printf("Num rolls: %d\n", num_rolls);
+  printf("2\t3\t4\t5\t6\t7\t8\t9\t10\t11\t12\n");
+  for (int i = 2; i <= 11; i++) {
+    sprintf(OUT, "roll-%d", i);
+    int rolled = cnt->Int(OUT);
+    printf("%.2f", rolled * 1.0 / num_rolls);
+    printf("\t");
   }
+  sprintf(OUT, "roll-12");
+  printf("%.2f", cnt->Int(OUT) * 1.0 / num_rolls);
+  printf("\n");
 }
 
 // Game state.
@@ -467,15 +458,15 @@ Player::Player(Game* game_, string name_, string strategy_) {
   strategy = strategy_;
 }
 
-void Player::NextActions(
-  const PlayerDecision& decision) {
+void Player::NextActions(const PlayerDecision& decision) {
   vector<Bet> bets;
   if (strategy == "iron_cross") {
     bets = IronCross(decision);
   } else if (strategy == "pass_only") {
     bets = PassOnly(decision);
   } else {
-    printf("Unrecognized strategy %s\n", strategy.c_str());
+    sprintf(OUT, "Unrecognized strategy %s\n", strategy.c_str());
+    Log(OUT, ERROR);
     assert(0 == 1);
   }
   // Make sure the player has enough money for the bets, if not pay for more.
@@ -490,6 +481,25 @@ void Player::NextActions(
   for (auto& bet : bets) {
     bet.player = id;  // Need to set which player this bet belongs to.
     game->AddBet(bet);
+  }
+}
+
+PlayerDecision Craps::Decision(PlayerId player_id) {
+  GameState game_state;
+  game_state.is_on = is_on;
+  game_state.on_num = on_num;
+  PlayerDecision decision(game_state, last_changed_bets[player_id],
+      bankrolls[player_id], paid[player_id]);
+  return decision;
+}
+
+void Craps::RunStrategies() {
+  for (auto& player_kv: cur_players) {
+    Player* player = player_kv.second;
+    PlayerId player_id = player_kv.first;
+    player->NextActions(Decision(player_id));
+    // Need to export the game state and set of bets relevant to this player for them
+    // to decide what to do next.
   }
 }
 
@@ -509,17 +519,24 @@ string Player::str() {
   Lose()  // notification that they lost all money. Won't call NextAction here.
 */
 
+void Round(Craps* craps) {
+  craps->RunStrategies();
+  craps->Roll();
+}
+
 void TestStrategyMain() {
   Craps craps;
   Player player0(&craps, "Ben", "iron_cross");
   player0.set_id(craps.Register(&player0));
   Player player1(&craps, "David", "pass_only");
   player1.set_id(craps.Register(&player1));
-  for (int i = 0; i < 100; i++) {
-    craps.Roll();
-    craps.RunStrategies();
+  Log("Initialized players", INFO);
+  int TRIALS = 100000;
+  for (int i = 0; i < TRIALS; i++) {
+    Round(&craps);
   }
   craps.InspectState();
+  craps.Summary();
 }
 
 void CommandLineMain() {
@@ -545,8 +562,4 @@ void CommandLineMain() {
   }
 }
 
-int main() {
-  //CommandLineMain();
-  TestStrategyMain();
-  return 0;
-}
+} // craps

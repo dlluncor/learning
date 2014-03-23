@@ -2,28 +2,30 @@
 #define _LESSONS_H
 
 #include <stdio.h>
-#include <string.h>
+#include "lib.h"
+#include <string>
 #include <vector>
 #include <map>
 
-#define TRACE_MSG fprintf(stderr, __FUNCTION__     \
-                          "() [%s:%d] here I am\n", \
-                          __FILE__, __LINE__)
-
-using namespace std;
+namespace craps {
 
 class Die {
+ public:
+  virtual int Roll() = 0;
+};
+
+class RandomDie: public Die {
  public:
   int Roll();
 };
 
-typedef string BetName;
+typedef std::string BetName;
 typedef int PlayerId;
 
 // Info needed about the board bet for the player to know how to bet next.
 struct BetInfo{
-  string prev_state; // previous state of the bet.
-  string next_state; // next state of the bet.
+  std::string prev_state; // previous state of the bet.
+  std::string next_state; // next state of the bet.
   float prev_value;
   float next_value;
 };
@@ -37,9 +39,9 @@ struct Bet {
   Bet(){};
 };
 
-typedef string (*BetNext)(int die0, int die1, bool is_on);
+typedef std::string (*BetNext)(int die0, int die1, bool is_on);
 // Bets that depend on the "ON" position.
-typedef string (*BetNextPass)(int on_num, int die0, int die1, bool is_on);
+typedef std::string (*BetNextPass)(int on_num, int die0, int die1, bool is_on);
 typedef float (*BetOddsPass) (int on_num, int sum);
 
 class Game {
@@ -47,11 +49,11 @@ class Game {
     virtual ~Game(){
       //cout << "Destroy games\n";
     };
-    void Name(){ cout << "I am a game" << "\n"; };
+    void Name(){ printf("I am a game\n"); };
     virtual void AddBet(Bet bet) = 0;
     virtual void Buyin(PlayerId id, float amount) = 0;
   private:
-    string game_;
+    std::string game_;
 };
 
 // Visible state of the game needed for a player to decide how to bet next.
@@ -63,23 +65,24 @@ struct GameState {
 // Info needed for a player to make a decision.
 struct PlayerDecision {
   GameState game_state;
-  vector<BetInfo> bet_infos;
+  std::vector<BetInfo> bet_infos;
   float amount;  // amount this player has.
-  PlayerDecision(const GameState& game_state_, const vector<BetInfo>& bet_infos_,
-    float amount_):
-    game_state(game_state_), bet_infos(bet_infos_), amount(amount_){};
+  float paid; // how much the player has paid.
+  PlayerDecision(const GameState& game_state_, const std::vector<BetInfo>& bet_infos_,
+    float amount_, float paid_):
+    game_state(game_state_), bet_infos(bet_infos_), amount(amount_), paid(paid_){};
 };
 
 class Player {
   public:
-    Player(Game* game, string name, string strategy);
+    Player(Game* game, std::string name, std::string strategy);
     void set_id(PlayerId id);
     void NextActions(const PlayerDecision& decision);
-    string str();
+    std::string str();
   private:
     Game* game;
-    string name;
-    string strategy;
+    std::string name;
+    std::string strategy;
     PlayerId id;
 };
 
@@ -98,30 +101,38 @@ class Craps : public Game {
 
    // Runs craps where all the players are automated robots.
    void RunStrategies();
+   // For debug and tests.
+   Craps(Die* die0_, Die* die1_);
+   void Summary();
+   PlayerDecision Decision(PlayerId player);  // Info about the game state for a player.
  private:
   void Init();
   void Pay(float amount, PlayerId player_num);
  	Die* die0;
  	Die* die1;
- 	map<string, Bet> bets;
-  map<PlayerId, float> paid;  // How much each player has paid.
-  map<PlayerId, float> bankrolls; // How much each player currently has.
+ 	std::map<std::string, Bet> bets;
+  std::map<PlayerId, float> paid;  // How much each player has paid.
+  std::map<PlayerId, float> bankrolls; // How much each player currently has.
 
   // Internal state to game.
   bool is_on; // Game starts off, then ON given certain rules.
   int on_num; // Value when table is "ON"
   PlayerId next_player_id;
-  map<PlayerId, Player*> cur_players;
+  std::map<PlayerId, Player*> cur_players;
+  lib::Counter* cnt;
 
   // To determine what happens to each bet next. The rules.
-  map<BetName, BetNext> name_to_next;
-  map<BetName, BetNextPass> name_to_next_pass;
-  map<BetName, float> name_to_odds;
-  map<BetName, BetOddsPass> name_to_odds_pass;
+  std::map<BetName, BetNext> name_to_next;
+  std::map<BetName, BetNextPass> name_to_next_pass;
+  std::map<BetName, float> name_to_odds;
+  std::map<BetName, BetOddsPass> name_to_odds_pass;
+  // To help each player decide what bet to make next.
+  std::map<PlayerId, std::vector<BetInfo> > last_changed_bets;
   bool IsPassBet(BetName name);
   bool IsPassBetOdds(BetName name); 
-
-  // To help each player decide what bet to make next.
-  map<PlayerId, vector<BetInfo>> last_changed_bets;
 };
+
+ void Round(Craps* craps);
+ void TestStrategyMain();
+}
 #endif // _LESSONS
