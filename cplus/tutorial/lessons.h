@@ -24,16 +24,24 @@ typedef int PlayerId;
 
 // Info needed about the board bet for the player to know how to bet next.
 struct BetInfo{
+  BetInfo(){}
+  BetInfo(std::string prev_state_, std::string next_state_, float prev_val_, float next_val_):
+    prev_state(prev_state_), next_state(next_state_), prev_value(prev_val_),
+    next_value(next_val_){}
   std::string prev_state; // previous state of the bet.
   std::string next_state; // next state of the bet.
   float prev_value;
   float next_value;
+  // For tests.
+  int id_;  // Id of the original bet. 
 };
 
 struct Bet {
   BetName name;
   PlayerId player;
   float value;
+  // Internal for test. As the game moves on, ids for bets monotonically increase.
+  int id_;
 
   Bet(BetName name_, float value_): name(name_), value(value_){};
   Bet(){};
@@ -113,6 +121,7 @@ class Craps : public Game {
  	std::map<std::string, Bet> bets;
   std::map<PlayerId, float> paid;  // How much each player has paid.
   std::map<PlayerId, float> bankrolls; // How much each player currently has.
+  int bet_id_; // increment how many bets we have, increases from 0 to n.
 
   // Internal state to game.
   bool is_on; // Game starts off, then ON given certain rules.

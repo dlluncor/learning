@@ -162,6 +162,7 @@ void Craps::Roll() {
   for (auto& bet_tup : bets) {
     BetInfo bet_info;
     auto& bet = bet_tup.second;
+    bet_info.id_ = bet.id_;
     auto& bet_key = bet_tup.first;
     string name = bet.name;
     bet_info.prev_state = name;
@@ -240,6 +241,8 @@ void Craps::Init() {
   is_on = false;
   on_num = 0;
   next_player_id = 0;
+  // For test.
+  bet_id_ = 0;
 
   // Odds predicates (for payout). I think they get more complicated than this....
   // TODO(dlluncor): Fill in more next states and odds.
@@ -341,6 +344,8 @@ void Craps::AddBet(Bet bet) {
   key << bet.name << "**" << bet.player;
   sprintf(OUT, "Player %d added bet: %s\n", bet.player, bet.name.c_str());
   Log(OUT, INFO);
+  bet.id_ = bet_id_;
+  bet_id_++;
   bets[key.str()] = bet;
   // Deduct from player's bankroll.
   bankrolls[bet.player] -= bet.value;
@@ -401,6 +406,8 @@ vector<Bet> PassOnly(const PlayerDecision& decision) {
   vector<Bet> bets;
   bool is_off = !decision.game_state.is_on;
   if (is_off) {
+    // TODO(dlluncor): Fix bug. Only put on a pass bet if we do not have one already on
+    // the table.
     // When the die roll is off, we want to simply put 10 on the pass line. Our money
     // is not still on the table.
     Bet bet("pass", 10.0);

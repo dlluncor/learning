@@ -4,6 +4,7 @@
 #include <iostream>
 #include <stdlib.h>
 #include <assert.h>
+#include <algorithm>
 
 using namespace std;
 
@@ -18,6 +19,40 @@ string AssertEquals(int v0, int v1) {
   return "";
 }
 
+string AssertEquals(bool v0, bool v1) {
+  if (v0 != v1) {
+  	sprintf(lib::OUT, "Expected: %d. Got: %d", v0, v1);
+  	return lib::OUT;
+  }
+  return "";
+}
+
+string AssertEquals(float v0, float v1) {
+  if (v0 != v1) {
+  	sprintf(lib::OUT, "Expected: %f. Got: %f", v0, v1);
+  	return lib::OUT;
+  }
+  return "";
+}
+
+string AssertEquals(string v0, string v1) {
+  if (v0 != v1) {
+  	sprintf(lib::OUT, "Expected: %s. Got: %s", v0.c_str(), v1.c_str());
+  	return lib::OUT;
+  }
+  return "";
+}
+
+
+string AssertEquals(const BetInfo v0, const BetInfo v1) {
+  string str = "";
+  str += AssertEquals(v0.next_state, v1.next_state);
+  str += AssertEquals(v0.prev_state, v1.prev_state);
+  str += AssertEquals(v0.next_value, v1.next_value);
+  str += AssertEquals(v0.prev_value, v1.prev_value);
+  return str;
+}
+
 class FakeDie: public Die {
   public:
   	FakeDie(vector<int> rolls): next_roll_(rolls), ind_(0){};
@@ -29,6 +64,12 @@ class FakeDie: public Die {
   private:
   	vector<int> next_roll_;
   	int ind_; // current roll.
+};
+
+struct bets_by_id {
+  bool operator()(const BetInfo& b0, const BetInfo& b1) {
+  	return b0.id_ < b1.id_;
+  }
 };
 
 string Test1() {
@@ -45,10 +86,12 @@ string Test1() {
   player1.set_id(pid1);
   Round(&craps);
   PlayerDecision d = craps.Decision(pid1);
-  res += AssertEquals(20, d.paid);  // Bets 10, then always buys in for 10 more.
-  res += AssertEquals(30, d.amount);  // Won 10 dollar bet.
-  // TODO(dlluncor): Make it so we can inspect what bets are on the table easier
-  // based on the PlayerDecision.
+  res += AssertEquals(20.0, d.paid);  // Bets 10, then always buys in for 10 more.
+  res += AssertEquals(30.0, d.amount);  // Won 10 dollar bet.
+  res += AssertEquals(false, d.game_state.is_on);
+  res += AssertEquals(0, d.game_state.on_num);
+  std::sort(d.bet_infos.begin(), d.bet_infos.end(), bets_by_id());
+  res += AssertEquals(BetInfo("pass", "win", 10.0, 20.0), d.bet_infos[0]);
   return res;
 }
 
