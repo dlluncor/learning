@@ -79,6 +79,7 @@ struct PlayerDecision {
   PlayerDecision(const GameState& game_state_, const std::vector<BetInfo>& bet_infos_,
     float amount_, float paid_):
     game_state(game_state_), bet_infos(bet_infos_), amount(amount_), paid(paid_){};
+    
 };
 
 class Player {

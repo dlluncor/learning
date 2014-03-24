@@ -74,25 +74,65 @@ struct bets_by_id {
 
 string Test1() {
   string res = "";
+  struct TestEntry {
+  	// Each vector represents the game state after each round. A round is a player's move
+  	// + a roll.
+    int rounds;
+    vector<int> die_rolls0;
+    vector<int> die_rolls1;
+    string strategy;
+    vector<float> paids;
+    vector<float> amounts;
+    vector<bool> is_ons;
+    vector<int> on_nums;
+    vector<vector<BetInfo> > bet_infos;
+  };
+
+  // Win, lose, on 8, on 9, lose.
+  // Each entry is the result AFTER the roll.
+  const TestEntry t = {
+    4,
+    {4, 1, 5, 6, 3}, {3, 1, 3, 3, 4}, /* die rolls */
+    "pass_only",
+    {20.0, 20.0, 20.0, 20.0, 20.0}, /* paid */
+    {30.0, 20.0, 10.0, 10.0, 10.0}, /* amount */
+    {false, false, true, true, false}, /* is_ons */
+    {0, 0, 8, 8, 0}, /* on_nums */
+    {
+      {BetInfo("pass", "win", 10.0, 20.0)},
+      {BetInfo("pass", "lose", 10.0, 0.0)},
+      {BetInfo("pass", "pass", 10.0, 10.0)},
+      {BetInfo("pass", "pass", 10.0, 10.0)},
+      {BetInfo("pass", "lose", 10.0, 0.0)}
+    } /* bet_infos */
+  };
+
   // Create Craps game.
   // Need two deterministic die.
   // Want to verify that when players place certain bets they end up with that
   // amount after each roll.
   // Sort of like list of bets, list of die rolls, list of dollar amounts after
   // each event.
-  Craps craps(new FakeDie({4}), new FakeDie({3}));
-  Player player1(&craps, "David", "pass_only");
+  // All reusable code to test Craps!!!
+  Craps craps(new FakeDie(t.die_rolls0), new FakeDie(t.die_rolls1));
+  Player player1(&craps, "David", t.strategy);
   int pid1 = craps.Register(&player1);
   player1.set_id(pid1);
-  Round(&craps);
-  PlayerDecision d = craps.Decision(pid1);
-  res += AssertEquals(20.0, d.paid);  // Bets 10, then always buys in for 10 more.
-  res += AssertEquals(30.0, d.amount);  // Won 10 dollar bet.
-  res += AssertEquals(false, d.game_state.is_on);
-  res += AssertEquals(0, d.game_state.on_num);
-  std::sort(d.bet_infos.begin(), d.bet_infos.end(), bets_by_id());
-  res += AssertEquals(1, d.bet_infos.size());
-  res += AssertEquals(BetInfo("pass", "win", 10.0, 20.0), d.bet_infos[0]);
+  for (int i = 0; i < t.rounds; i++) {
+    Round(&craps);
+    PlayerDecision d = craps.Decision(pid1);
+    res += AssertEquals(t.paids[i], d.paid);  // Bets 10, then always buys in for 10 more.
+    res += AssertEquals(t.amounts[i], d.amount);  // Won 10 dollar bet.
+    res += AssertEquals(t.is_ons[i], d.game_state.is_on);
+    res += AssertEquals(t.on_nums[i], d.game_state.on_num);
+    std::sort(d.bet_infos.begin(), d.bet_infos.end(), bets_by_id());
+    auto& bets_list = t.bet_infos[i]; 
+    int num_bets = bets_list.size();
+    res += AssertEquals(d.bet_infos.size(), num_bets);
+    for (int b = 0; b < num_bets; b++) {
+      res += AssertEquals(bets_list[b], d.bet_infos[b]);
+    }
+  }
   return res;
 }
 
