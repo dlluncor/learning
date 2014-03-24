@@ -88,22 +88,22 @@ string Test1() {
     vector<vector<BetInfo> > bet_infos;
   };
 
-  // Win, lose, on 8, on 9, lose.
+  // Win, lose, on 8, on 9, win
   // Each entry is the result AFTER the roll.
   const TestEntry t = {
-    4,
-    {4, 1, 5, 6, 3}, {3, 1, 3, 3, 4}, /* die rolls */
+    5,
+    {4, 1, 5, 6, 4}, {3, 1, 3, 3, 4}, /* die rolls */
     "pass_only",
     {20.0, 20.0, 20.0, 20.0, 20.0}, /* paid */
-    {30.0, 20.0, 10.0, 10.0, 10.0}, /* amount */
+    {30.0, 20.0, 10.0, 10.0, 30.0}, /* amount */
     {false, false, true, true, false}, /* is_ons */
     {0, 0, 8, 8, 0}, /* on_nums */
     {
-      {BetInfo("pass", "win", 10.0, 20.0)},
-      {BetInfo("pass", "lose", 10.0, 0.0)},
-      {BetInfo("pass", "pass", 10.0, 10.0)},
-      {BetInfo("pass", "pass", 10.0, 10.0)},
-      {BetInfo("pass", "lose", 10.0, 0.0)}
+      {BetInfo(PASS, "win", 10.0, 20.0)},
+      {BetInfo(PASS, "lose", 10.0, 0.0)},
+      {BetInfo(PASS, PASS, 10.0, 10.0)},
+      {BetInfo(PASS, PASS, 10.0, 10.0)},
+      {BetInfo(PASS, "win", 10.0, 20.0)}
     } /* bet_infos */
   };
 

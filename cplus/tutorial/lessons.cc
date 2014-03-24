@@ -18,6 +18,9 @@ namespace craps {
 using namespace std;
 using namespace lib;
 
+// Names of bets.
+string PASS = "pass";
+
 int RandomDie::Roll() {
   // Roll a value 1 to 6.
   return 1 + (rand() % 6);
@@ -119,11 +122,7 @@ string EightNext(int on_num, int die0, int die1, bool is_on) {
 }
 
 float PassOdds(int on_num, int sum) {
-  if (on_num == 0) {
-    // We are not on, so its 1 to 1 whether we lose.
-    return 1.0;
-  }
-  return RolledToOdds(on_num);
+  return 1.0;  // Pass always pays evenly.
 }
 
 float FieldOdds(int on_num, int sum) {
@@ -253,7 +252,7 @@ void Craps::Init() {
     {"Eight", 7/6.0}
   };
   name_to_odds_pass = {
-    {"pass", *PassOdds},
+    {PASS, *PassOdds},
     {"Field", *FieldOdds},
   };
 
@@ -264,7 +263,7 @@ void Craps::Init() {
   };
 
   name_to_next_pass = {
-    {"pass", *PassNext},
+    {PASS, *PassNext},
     {"Five", *FiveNext},
     {"Six", *SixNext},
     {"Eight", *EightNext}
@@ -402,15 +401,21 @@ void Lessons() {
 // List of strategies. They all take decision info for a player and then make the appropriate
 // named bet with the right amount of dollars.
 
+void makeBetMap(map<BetName, bool>& bets_map, vector<BetInfo> bet_infos) {
+  for (auto& bet_info: bet_infos) {
+    if (bet_info.next_value > 0) {
+       bets_map[bet_info.next_state] = true;
+    }
+  }
+}
+
 vector<Bet> PassOnly(const PlayerDecision& decision) {
   vector<Bet> bets;
   bool is_off = !decision.game_state.is_on;
   if (is_off) {
-    // TODO(dlluncor): Fix bug. Only put on a pass bet if we do not have one already on
-    // the table.
     // When the die roll is off, we want to simply put 10 on the pass line. Our money
     // is not still on the table.
-    Bet bet("pass", 10.0);
+    Bet bet(PASS, 10.0);
     bets.push_back(bet);
   }
   return bets;
@@ -420,18 +425,13 @@ vector<Bet> IronCross(const PlayerDecision& decision) {
   float default_bet = 10.0;
   vector<Bet> bets;
   map<BetName, bool> cur_bets_map;
-  for (auto& bet_info: decision.bet_infos) {
-    if (bet_info.next_value > 0) {
-       cur_bets_map[bet_info.next_state] = true;
-    }
-  }
-
+  makeBetMap(cur_bets_map, decision.bet_infos);
   bool is_off = !decision.game_state.is_on;
   int on_num = decision.game_state.on_num;
   if (is_off) {
     // When the die roll is off, we want to simply put 10 on the pass line. Our money
     // is not still on the table.
-    Bet bet("pass", default_bet);
+    Bet bet(PASS, default_bet);
     bets.push_back(bet);
   } else {
     // We are on, we need to look at the button and our bets.
@@ -550,7 +550,7 @@ void CommandLineMain() {
   Craps craps;
   PlayerId id = 0;
   craps.Buyin(id, 200);
-  Bet bet("pass", 10.0);
+  Bet bet(PASS, 10.0);
   bet.player = id;
   craps.AddBet(bet);
   string resp;
