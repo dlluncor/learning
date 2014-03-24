@@ -364,6 +364,12 @@ void Craps::Summary() {
   sprintf(OUT, "roll-12");
   printf("%.2f", cnt->Int(OUT) * 1.0 / num_rolls);
   printf("\n");
+  // Keep track of how each player's bets did.
+  // For each player.
+  // For each type of bet.
+  //   Amount bet. Amount won. Amount lost.
+  //   Times hit. Times did not hit.
+  //   Eventually, variance in hitting and betting.
 }
 
 // Game state.

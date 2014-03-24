@@ -141,7 +141,10 @@ class Craps : public Game {
   // To help each player decide what bet to make next.
   std::map<PlayerId, std::vector<BetInfo> > last_changed_bets;
   bool IsPassBet(BetName name);
-  bool IsPassBetOdds(BetName name); 
+  bool IsPassBetOdds(BetName name);
+
+  // For debug and tests.
+  std::map<PlayerId, std::set<BetName>> player_to_bets;  // All bets one player has made.
 };
 
  void Round(Craps* craps);
