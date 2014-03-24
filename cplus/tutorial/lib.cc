@@ -27,9 +27,13 @@ namespace lib {
    }
 
   void MemCounter::Inc(string name) {
+    Inc(name, 1);
+  }
+
+  void MemCounter::Inc(string name, int amount) {
       if (int_counts.find(name) == int_counts.end()) {
         int_counts[name] = 0;
       }
-      int_counts[name]++;
+      int_counts[name] += amount;
   }
 }

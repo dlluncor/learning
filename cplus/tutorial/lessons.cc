@@ -193,10 +193,15 @@ void Craps::Roll() {
         // Remove winning bets.
         remove_bets.push_back(bet_key);
       }
+      // Metrics.    
+      sprintf(OUT, "won$-%d-%s", bet.player, bet.name.c_str()); cnt->Inc(OUT, next_value);
+      sprintf(OUT, "hit#-%d-%s", bet.player, bet.name.c_str()); cnt->Inc(OUT);
     } else if (next_state == "lose") {
       // Remove the bet!
       next_value = 0;
       remove_bets.push_back(bet_key);
+      sprintf(OUT, "lost$-%d-%s", bet.player, bet.name.c_str()); cnt->Inc(OUT, bet.value);
+      sprintf(OUT, "nothit#-%d-%s", bet.player, bet.name.c_str()); cnt->Inc(OUT);
       //bets.erase(bet_key);
     } else if (next_state != "") {
       // Then we need to transition the money to another bet (COME) bet.
@@ -328,6 +333,7 @@ PlayerId Craps::Register(Player* player) {
   bankrolls[next_player_id] = 0;
   last_changed_bets[next_player_id] = {};
   cur_players[next_player_id] = player;
+  player_to_bets[next_player_id] = {};
   return next_player_id;
 }
 
@@ -348,6 +354,9 @@ void Craps::AddBet(Bet bet) {
   bets[key.str()] = bet;
   // Deduct from player's bankroll.
   bankrolls[bet.player] -= bet.value;
+  player_to_bets[bet.player].insert(bet.name);  // Keep track of bets a person has made.
+  sprintf(OUT, "bet$-%d-%s", bet.player, bet.name.c_str());
+  cnt->Inc(OUT, bet.value);
 }
 
 void Craps::Summary() {
@@ -370,6 +379,27 @@ void Craps::Summary() {
   //   Amount bet. Amount won. Amount lost.
   //   Times hit. Times did not hit.
   //   Eventually, variance in hitting and betting.
+  for (auto& kv : player_to_bets) {
+    auto& player_id = kv.first;
+    printf("---Results for Player %d---\n", player_id);
+    printf("Name\tBet\tWonback\tLostit\t#hits\t#losses\n");
+    auto& bet_names = kv.second;
+    for (auto& bet_name : bet_names) {
+      sprintf(OUT, "bet$-%d-%s", player_id, bet_name.c_str());
+      int amount_bet = cnt->Int(OUT);
+      sprintf(OUT, "won$-%d-%s", player_id, bet_name.c_str());
+      int amount_won = cnt->Int(OUT);
+      sprintf(OUT, "lost$-%d-%s", player_id, bet_name.c_str());
+      int amount_lost = cnt->Int(OUT);
+      sprintf(OUT, "hit#-%d-%s", player_id, bet_name.c_str());
+      int hit_num = cnt->Int(OUT);
+      sprintf(OUT, "nothit#-%d-%s", player_id, bet_name.c_str());
+      int nothit_num = cnt->Int(OUT);
+      // TODO(dlluncor): Add more counters.
+      printf("%s\t$%d\t$%d\t$%d\t%d\t%d\n", bet_name.c_str(), amount_bet, amount_won,
+             amount_lost, hit_num, nothit_num);
+    }
+  }
 }
 
 // Game state.

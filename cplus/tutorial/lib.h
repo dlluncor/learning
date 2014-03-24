@@ -18,12 +18,14 @@ namespace lib {
    public:
     virtual int Int(std::string name) = 0;
     virtual void Inc(std::string name) = 0;
+    virtual void Inc(std::string name, int amount) = 0;
   };
 
   class MemCounter: public Counter {
    public:
     int Int(std::string name);
     void Inc(std::string name);
+    void Inc(std::string name, int amount);
    private:
     std::map<std::string, int> int_counts;
   };
