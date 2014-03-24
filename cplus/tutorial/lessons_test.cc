@@ -91,6 +91,7 @@ string Test1() {
   res += AssertEquals(false, d.game_state.is_on);
   res += AssertEquals(0, d.game_state.on_num);
   std::sort(d.bet_infos.begin(), d.bet_infos.end(), bets_by_id());
+  res += AssertEquals(1, d.bet_infos.size());
   res += AssertEquals(BetInfo("pass", "win", 10.0, 20.0), d.bet_infos[0]);
   return res;
 }
