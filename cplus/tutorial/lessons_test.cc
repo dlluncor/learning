@@ -13,7 +13,7 @@ namespace craps {
 // lib
 string AssertEquals(int v0, int v1) {
   if (v0 != v1) {
-  	sprintf(lib::OUT, "Expected: %d. Got: %d", v0, v1);
+  	sprintf(lib::OUT, "Expected: %d. Got: %d\n", v0, v1);
   	return lib::OUT;
   }
   return "";
@@ -21,23 +21,27 @@ string AssertEquals(int v0, int v1) {
 
 string AssertEquals(bool v0, bool v1) {
   if (v0 != v1) {
-  	sprintf(lib::OUT, "Expected: %d. Got: %d", v0, v1);
+  	sprintf(lib::OUT, "Expected: %d. Got: %d\n", v0, v1);
   	return lib::OUT;
   }
   return "";
 }
 
+float EPSILON = 0.00001;
+#include <cmath>
 string AssertEquals(float v0, float v1) {
   if (v0 != v1) {
-  	sprintf(lib::OUT, "Expected: %f. Got: %f", v0, v1);
-  	return lib::OUT;
+    if (std::abs(v0 - v1) > EPSILON) {
+  	  sprintf(lib::OUT, "Expected: %f. Got: %f\n", v0, v1);
+  	  return lib::OUT;
+    }
   }
   return "";
 }
 
 string AssertEquals(string v0, string v1) {
   if (v0 != v1) {
-  	sprintf(lib::OUT, "Expected: %s. Got: %s", v0.c_str(), v1.c_str());
+  	sprintf(lib::OUT, "Expected: %s. Got: %s\n", v0.c_str(), v1.c_str());
   	return lib::OUT;
   }
   return "";
@@ -72,41 +76,22 @@ struct bets_by_id {
   }
 };
 
-string Test1() {
+struct TestEntry {
+  // Each vector represents the game state after each round. A round is a player's move
+  // + a roll.
+  int rounds;
+  vector<int> die_rolls0;
+  vector<int> die_rolls1;
+  string strategy;
+  vector<float> paids;
+  vector<float> amounts;
+  vector<bool> is_ons;
+  vector<int> on_nums;
+  vector<vector<BetInfo> > bet_infos;
+};
+
+string RunGenericCrapsTest(TestEntry t) {
   string res = "";
-  struct TestEntry {
-  	// Each vector represents the game state after each round. A round is a player's move
-  	// + a roll.
-    int rounds;
-    vector<int> die_rolls0;
-    vector<int> die_rolls1;
-    string strategy;
-    vector<float> paids;
-    vector<float> amounts;
-    vector<bool> is_ons;
-    vector<int> on_nums;
-    vector<vector<BetInfo> > bet_infos;
-  };
-
-  // Win, lose, on 8, on 9, win
-  // Each entry is the result AFTER the roll.
-  const TestEntry t = {
-    5,
-    {4, 1, 5, 6, 4}, {3, 1, 3, 3, 4}, /* die rolls */
-    "pass_only",
-    {20.0, 20.0, 20.0, 20.0, 20.0}, /* paid */
-    {30.0, 20.0, 10.0, 10.0, 30.0}, /* amount */
-    {false, false, true, true, false}, /* is_ons */
-    {0, 0, 8, 8, 0}, /* on_nums */
-    {
-      {BetInfo(PASS, "win", 10.0, 20.0)},
-      {BetInfo(PASS, "lose", 10.0, 0.0)},
-      {BetInfo(PASS, PASS, 10.0, 10.0)},
-      {BetInfo(PASS, PASS, 10.0, 10.0)},
-      {BetInfo(PASS, "win", 10.0, 20.0)}
-    } /* bet_infos */
-  };
-
   // Create Craps game.
   // Need two deterministic die.
   // Want to verify that when players place certain bets they end up with that
@@ -136,9 +121,56 @@ string Test1() {
   return res;
 }
 
+string TestPassOnly() {
+  // Win, lose, on 8, on 9, win
+  // Each entry is the result AFTER the roll.
+  const TestEntry t = {
+    5,
+    {4, 1, 5, 6, 4}, {3, 1, 3, 3, 4}, /* die rolls */
+    PASS_ONLY,
+    {20.0, 20.0, 20.0, 20.0, 20.0}, /* paid */
+    {30.0, 20.0, 10.0, 10.0, 30.0}, /* amount */
+    {false, false, true, true, false}, /* is_ons */
+    {0, 0, 8, 8, 0}, /* on_nums */
+    {
+      {BetInfo(PASS, WIN, 10.0, 20.0)},
+      {BetInfo(PASS, LOSE, 10.0, 0.0)},
+      {BetInfo(PASS, PASS, 10.0, 10.0)},
+      {BetInfo(PASS, PASS, 10.0, 10.0)},
+      {BetInfo(PASS, WIN, 10.0, 20.0)}
+    } /* bet_infos */
+  };
+  string res = RunGenericCrapsTest(t);
+  return res;
+}
+
+string TestIronCross() {
+  // on 5 (add 6, 8, field bet), roll 6
+  // Each entry is the result AFTER the roll.
+  const TestEntry t = {
+    2,
+    {1, 3}, {4, 3}, /* die rolls */
+    IRON_CROSS,
+    {20.0, 50.0}, /* paid */
+    {10.0, 31.666666}, /* amount */
+    {true, true}, /* is_ons */
+    {5, 5}, /* on_nums */
+    {
+      {BetInfo(PASS, PASS, 10.0, 10.0)},
+      {BetInfo(PASS, PASS, 10.0, 10.0),
+       BetInfo(SIX, WIN_STAY, 10.0, 21.66666),
+       BetInfo(EIGHT, EIGHT, 10.0, 10.0),
+       BetInfo(FIELD, LOSE, 10.0, 0.0)}
+    } /* bet_infos */
+  };
+  string res = RunGenericCrapsTest(t);
+  return res;
+}
+
 string RunTests() {
   string res = "";
-  res += Test1();
+  res += TestPassOnly();
+  res += TestIronCross();
   return res;
 };
 

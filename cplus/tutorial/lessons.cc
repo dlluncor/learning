@@ -20,6 +20,20 @@ using namespace lib;
 
 // Names of bets.
 string PASS = "pass";
+string FIVE = "Five";
+string SIX = "Six";
+string EIGHT = "Eight";
+string FIELD = "Field";
+
+// Name of states.
+string LOSE = "lose";
+string WIN = "win";
+string WIN_STAY = "win_stay";
+string NO_STATE_CHANGE = "";
+
+// Name of strategies.
+string PASS_ONLY = "pass_only";
+string IRON_CROSS = "iron_cross";
 
 int RandomDie::Roll() {
   // Roll a value 1 to 6.
@@ -38,8 +52,8 @@ bool InField(float sum) {
 // Payout based on what you bet.
 // Next state of your position given the roll (COME bets will move to the dice rolled).
 
-// Next states can go to the dealer "lose", "" (dont move), a different bet BetName,
-// the player "win" which means pay and take off, or "winStay" which means pay but keep bet on table.
+// Next states can go to the dealer LOSE, "" (dont move), a different bet BetName,
+// the player WIN which means pay and take off, or "winStay" which means pay but keep bet on table.
 
 // How to represent a push on the current bet?
 
@@ -66,59 +80,59 @@ float RolledToOdds(int on_num) {
 string PassNext(int on_num, int die0, int die1, bool is_on) {
   int sum = die0 + die1;
   if (is_on && sum == on_num) {
-    return "win";
+    return WIN;
   } else if (is_on && sum == 7) {
-    return "lose";
+    return LOSE;
   } else if (!is_on && (sum == 7 || sum == 11)) {
-    return "win";
+    return WIN;
   } else if (!is_on && (sum == 2 || sum == 3 || sum == 12)) {
-    return "lose";
+    return LOSE;
   }
-  return "";
+  return NO_STATE_CHANGE;
 }
 
 string HardTwoNext(int die0, int die1, bool is_on) {
   if ((die0 + die1) == 2) {
-    return "win"; // always give back money for middle bets...I think.
+    return WIN; // always give back money for middle bets...I think.
   }
-  return "lose";
+  return LOSE;
 }
 
 string FieldNext(int die0, int die1, bool is_on) {
   if (InField(die0 + die1)) {
-    return "win";
+    return WIN;
   }
-  return "lose";
+  return LOSE;
 }
 
 string FiveNext(int on_num, int die0, int die1, bool is_on) {
   if ((die0 + die1) == 5) {
-    return "win_stay";  // You win but can't remove the bet itself.
+    return WIN_STAY;  // You win but can't remove the bet itself.
   }
-  if (PassNext(on_num, die0, die1, is_on) == "lose") {
-    return "lose"; // If we dont lose, we stay around.
+  if (PassNext(on_num, die0, die1, is_on) == LOSE) {
+    return LOSE; // If we dont lose, we stay around.
   }
-  return "";  // We didn't win, and we didn't lose, stick around.
+  return NO_STATE_CHANGE;  // We didn't win, and we didn't lose, stick around.
 }
 
 string SixNext(int on_num, int die0, int die1, bool is_on) {
   if ((die0 + die1) == 6) {
-    return "win_stay";  // You win but can't remove the bet itself.
+    return WIN_STAY;  // You win but can't remove the bet itself.
   }
-  if (PassNext(on_num, die0, die1, is_on) == "lose") {
-    return "lose"; // If we dont lose, we stay around.
+  if (PassNext(on_num, die0, die1, is_on) == LOSE) {
+    return LOSE; // If we dont lose, we stay around.
   }
-  return "";  // We didn't win, and we didn't lose, stick around.
+  return NO_STATE_CHANGE;  // We didn't win, and we didn't lose, stick around.
 }
 
 string EightNext(int on_num, int die0, int die1, bool is_on) {
   if ((die0 + die1) == 8) {
-    return "win_stay";  // You win but can't remove the bet itself.
+    return WIN_STAY;  // You win but can't remove the bet itself.
   }
-  if (PassNext(on_num, die0, die1, is_on) == "lose") {
-    return "lose"; // If we dont lose, we stay around.
+  if (PassNext(on_num, die0, die1, is_on) == LOSE) {
+    return LOSE; // If we dont lose, we stay around.
   }
-  return "";  // We didn't win, and we didn't lose, stick around.
+  return NO_STATE_CHANGE;  // We didn't win, and we didn't lose, stick around.
 }
 
 float PassOdds(int on_num, int sum) {
@@ -178,7 +192,7 @@ void Craps::Roll() {
     sprintf(OUT, "Bet: %s Next state: %s\n", bet.name.c_str(), next_state.c_str());
     Log(OUT, INFO);
     // Determine what to do with money.
-    if (next_state == "win" || next_state == "win_stay") {
+    if (next_state == WIN || next_state == WIN_STAY) {
       float payout_multiplier;
       if (IsPassBetOdds(name)) {
         payout_multiplier = name_to_odds_pass[name](on_num, val0 + val1);
@@ -189,21 +203,21 @@ void Craps::Roll() {
       // again.
       next_value = (payout_multiplier*bet.value) + bet.value;
       Pay(next_value, bet.player);
-      if (next_state == "win") {
+      if (next_state == WIN) {
         // Remove winning bets.
         remove_bets.push_back(bet_key);
       }
       // Metrics.    
       sprintf(OUT, "won$-%d-%s", bet.player, bet.name.c_str()); cnt->Inc(OUT, next_value);
       sprintf(OUT, "hit#-%d-%s", bet.player, bet.name.c_str()); cnt->Inc(OUT);
-    } else if (next_state == "lose") {
+    } else if (next_state == LOSE) {
       // Remove the bet!
       next_value = 0;
       remove_bets.push_back(bet_key);
       sprintf(OUT, "lost$-%d-%s", bet.player, bet.name.c_str()); cnt->Inc(OUT, bet.value);
       sprintf(OUT, "nothit#-%d-%s", bet.player, bet.name.c_str()); cnt->Inc(OUT);
       //bets.erase(bet_key);
-    } else if (next_state != "") {
+    } else if (next_state != NO_STATE_CHANGE) {
       // Then we need to transition the money to another bet (COME) bet.
       bet.name = next_state;  // TODO: Will this actually work?? Or a bug??
       next_value = bet.value;
@@ -211,6 +225,7 @@ void Craps::Roll() {
       // Or don't do anything, so the next state is the prev state.
       next_state = name;
       next_value = bet.value;
+      sprintf(OUT, "nostatechange#-%d-%s", bet.player, bet.name.c_str()); cnt->Inc(OUT);
     }
     bet_info.next_state = next_state;
     bet_info.next_value = next_value;
@@ -221,11 +236,9 @@ void Craps::Roll() {
   }
 
   string next_button_state = PassNext(on_num, val0, val1, is_on);
-  if (next_button_state == "win" || next_button_state == "lose") {
+  if (next_button_state == WIN || next_button_state == LOSE) {
     on_num = 0;
-    if (is_on) {
-      is_on = false;
-    }
+    is_on = false;
     // If you were off you stay off.
   } else {
     // If you were on do nothing.
@@ -252,26 +265,26 @@ void Craps::Init() {
   // TODO(dlluncor): Fill in more next states and odds.
   name_to_odds = {
     {"hardTwo", 30.0},
-    {"Five", 7/5.0},
-    {"Six", 7/6.0},
-    {"Eight", 7/6.0}
+    {FIVE, 7/5.0},
+    {SIX, 7/6.0},
+    {EIGHT, 7/6.0}
   };
   name_to_odds_pass = {
     {PASS, *PassOdds},
-    {"Field", *FieldOdds},
+    {FIELD, *FieldOdds},
   };
 
   // Next state predicates (only ones that matter), they determine whether you win as well.
   name_to_next = {
     {"hardTwo", *HardTwoNext},
-    {"Field", *FieldNext}
+    {FIELD, *FieldNext}
   };
 
   name_to_next_pass = {
     {PASS, *PassNext},
-    {"Five", *FiveNext},
-    {"Six", *SixNext},
-    {"Eight", *EightNext}
+    {FIVE, *FiveNext},
+    {SIX, *SixNext},
+    {EIGHT, *EightNext}
   };
 
   cnt = new MemCounter();
@@ -382,7 +395,7 @@ void Craps::Summary() {
   for (auto& kv : player_to_bets) {
     auto& player_id = kv.first;
     printf("---Results for Player %d---\n", player_id);
-    printf("Name\tBet\tWonback\tLostit\t#hits\t#losses\n");
+    printf("Name\tBet\tWonback\tLostit\t#hits\t#losses\t#nochange\n");
     auto& bet_names = kv.second;
     for (auto& bet_name : bet_names) {
       sprintf(OUT, "bet$-%d-%s", player_id, bet_name.c_str());
@@ -395,9 +408,11 @@ void Craps::Summary() {
       int hit_num = cnt->Int(OUT);
       sprintf(OUT, "nothit#-%d-%s", player_id, bet_name.c_str());
       int nothit_num = cnt->Int(OUT);
+      sprintf(OUT, "nostatechange#-%d-%s", player_id, bet_name.c_str()); 
+      int no_state_change = cnt->Int(OUT);
       // TODO(dlluncor): Add more counters.
-      printf("%s\t$%d\t$%d\t$%d\t%d\t%d\n", bet_name.c_str(), amount_bet, amount_won,
-             amount_lost, hit_num, nothit_num);
+      printf("%s\t$%d\t$%d\t$%d\t%d\t%d\t%d\n", bet_name.c_str(), amount_bet, amount_won,
+             amount_lost, hit_num, nothit_num, no_state_change);
     }
   }
 }
@@ -471,24 +486,24 @@ vector<Bet> IronCross(const PlayerDecision& decision) {
     bets.push_back(bet);
   } else {
     // We are on, we need to look at the button and our bets.
-    if (on_num != 5 && (cur_bets_map.find("Five") == cur_bets_map.end())) {
+    if (on_num != 5 && (cur_bets_map.find(FIVE) == cur_bets_map.end())) {
       // Make a bet on 5 if we don't have a bet down already.
-      Bet bet("Five", default_bet);
+      Bet bet(FIVE, default_bet);
       bets.push_back(bet);
     }
-    if (on_num != 6 && (cur_bets_map.find("Six") == cur_bets_map.end())) {
+    if (on_num != 6 && (cur_bets_map.find(SIX) == cur_bets_map.end())) {
       // Make a bet on 6 if we don't have a bet down already.
-      Bet bet("Six", default_bet);
+      Bet bet(SIX, default_bet);
       bets.push_back(bet);
     }
-    if (on_num != 8 && (cur_bets_map.find("Eight") == cur_bets_map.end())) {
+    if (on_num != 8 && (cur_bets_map.find(EIGHT) == cur_bets_map.end())) {
       // Make a bet on 8 if we don't have a bet down already.
-      Bet bet("Eight", default_bet);
+      Bet bet(EIGHT, default_bet);
       bets.push_back(bet);
     }
-    if(cur_bets_map.find("Field") == cur_bets_map.end()) {
+    if(cur_bets_map.find(FIELD) == cur_bets_map.end()) {
       // Make a bet on the field if we don't have a bet down already.
-      Bet bet("Field", default_bet);
+      Bet bet(FIELD, default_bet);
       bets.push_back(bet); 
     }
   }
@@ -503,9 +518,9 @@ Player::Player(Game* game_, string name_, string strategy_) {
 
 void Player::NextActions(const PlayerDecision& decision) {
   vector<Bet> bets;
-  if (strategy == "iron_cross") {
+  if (strategy == IRON_CROSS) {
     bets = IronCross(decision);
-  } else if (strategy == "pass_only") {
+  } else if (strategy == PASS_ONLY) {
     bets = PassOnly(decision);
   } else {
     sprintf(OUT, "Unrecognized strategy %s\n", strategy.c_str());
@@ -569,9 +584,9 @@ void Round(Craps* craps) {
 
 void TestStrategyMain() {
   Craps craps;
-  Player player0(&craps, "Ben", "iron_cross");
+  Player player0(&craps, "Ben", IRON_CROSS);
   player0.set_id(craps.Register(&player0));
-  Player player1(&craps, "David", "pass_only");
+  Player player1(&craps, "David", PASS_ONLY);
   player1.set_id(craps.Register(&player1));
   Log("Initialized players", INFO);
   int TRIALS = 100000;

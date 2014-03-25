@@ -10,7 +10,21 @@
 
 namespace craps {
 
+// Bets.
 extern std::string PASS;
+extern std::string FIVE;
+extern std::string SIX;
+extern std::string EIGHT;
+extern std::string FIELD;
+
+// Name of states.
+extern std::string LOSE;
+extern std::string WIN;
+extern std::string WIN_STAY;
+
+// Strategies.
+extern std::string PASS_ONLY;
+extern std::string IRON_CROSS;
 
 class Die {
  public:

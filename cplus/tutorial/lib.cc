@@ -19,7 +19,7 @@ namespace lib {
   int MemCounter::Int(string name) {
       if (int_counts.find(name) == int_counts.end()) {
         sprintf(OUT, "KEY %s DOES NOT EXIST IN COUNTER", name.c_str());
-        Log(OUT, ERROR);
+        Log(OUT, WARN);
         return -1;
         //assert(0 == 1);
       }
