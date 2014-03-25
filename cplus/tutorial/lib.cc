@@ -21,7 +21,6 @@ namespace lib {
         sprintf(OUT, "KEY %s DOES NOT EXIST IN COUNTER", name.c_str());
         Log(OUT, WARN);
         return -1;
-        //assert(0 == 1);
       }
       return int_counts[name];
    }
