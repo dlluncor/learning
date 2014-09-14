@@ -1,5 +1,12 @@
 
 class GD:
+  """Finds the local minimum for an equation.
+  
+  Args:
+    eq: f(x) where x is an array of input points
+    partials: f'(x) for each x(i)
+    starts: initial x(i) guess
+  """
   def __init__(self, eq, partials, starts):
     self.eq = eq
     self.partials = partials
