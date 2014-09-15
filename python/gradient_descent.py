@@ -11,7 +11,7 @@ class GD:
     self.eq = eq
     self.partials = partials
     self.starts = starts
-    self.rate = 0.001
+    self.rate = 0.000101
     self.mindiff = 0.00000000001
 
   def minimize(self):
@@ -34,15 +34,19 @@ class GD:
       cur = self.eq(points)
     return points
 
-eps = 0.0001
+eps = 0.001
 
 def assertApproxEqual(l0, l1):
   if len(l0) != len(l1):
-    print 'Lengths not equal. %d vs %d' % (len(l0), len(l1))    
+    print 'Lengths not equal. %d vs %d' % (len(l0), len(l1))
+    return False
+  s = ''
   for i in xrange(len(l0)):
     if abs(l0[i] - l1[i]) < eps:
       continue
-    print 'At pos %d, %.3f != %.3f' % (i, l0[i], l1[i])    
+    s += 'At pos %d, %.3f != %.3f' % (i, l0[i], l1[i])
+    print s
+  return s == ''
 
 class Linear:
   """Represents a linear equation.
@@ -68,6 +72,7 @@ class Linear:
     n = len(points[0])
     self.starts = [0 for _ in xrange(n + 1)] # + 1 for bias
 
+  @staticmethod
   def verify(points, ys):
     if len(ys) != len(points):
       print 'ys != len points'
@@ -80,26 +85,31 @@ class Linear:
         return False
     return True
 
+  @staticmethod
   def predict(xs, ws):
     # xs = [0.2, 0.3] corresponding to x1 and x2
     # ws = [0.1, 0.4, 0.5] for w0, w1, w2
     val = ws[0]  # bias
     for i in xrange(len(xs)):
-      val += x * ws[i+1]
+      val += xs[i] * ws[i+1]
     return val
 
-  def eq(self, ws):
+  def eq(self):
     # ws corresponds to each weight on each dimension x0 ... x(n)
     # eq is calculating the current total loss
-    loss = 0.0
-    for i in xrange(len(self.points)):
-      p = self.points[i]
-      yi = Linear.predict(p, ws)
-      y = self.ys[i]
-      dist = yi - y
-      loss += dist**2
-    # TODO: 1 / 2m multiply by
-    return loss
+    def calcLoss(ws):
+      loss = 0.0
+      n = len(self.points)
+      for i in xrange(n):
+        p = self.points[i]
+        yi = Linear.predict(p, ws)
+        y = self.ys[i]
+        dist = yi - y
+        loss += dist**2
+      fl = loss / (n * 1.0)
+      print 'Weights %s. Loss: %.3f' % (str(ws), fl)
+      return fl
+    return calcLoss
 
   def partials(self):
     ps = []
@@ -109,12 +119,15 @@ class Linear:
       pCoor = iCoor - 1 # w(1) corresponds to x(0) coordinate
       def hypo(weights):
         dist = 0
-        for i in xrange(len(self.points)):
+        n = len(self.points)
+        for i in xrange(n):
           p = self.points[i]
           distForEx = Linear.predict(p, weights) - self.ys[i]
           if iCoor != 0:
             distForEx *= p[pCoor]
           dist += distForEx
+        dist = dist * 2.0 / (n * 1.0)
+        return dist
 
       return hypo
 
@@ -125,16 +138,40 @@ class Linear:
 
     return ps
 
-  def starts(self):
+  def startingPoints(self):
     return self.starts
+
+def assertEquals(f0, f1):
+  if abs(f1 - f0) > eps:
+    print 'f1 != f0 (%f != %f)' % (f1, f0)
+    return False
+  return True
+
+def testLinear():
+  # Test the construction of a linear algorithm
+  pts = [[95], [85]]
+  ys = [85, 95]
+  l = Linear(pts, ys)
+  assert assertEquals(8125, l.eq()([0, 0]))
+  p = l.partials()
+  # (3 + 5 (95))  - 85  +  (3 + 5 (85)) - 95 
+  assert assertEquals(726.0, p[0]([3, 5])) # 3 + 5x. 
+  # (95 * 393) + (85 * 333)
+  assert assertEquals(65640.0, p[1]([3, 5])) # 3 + 5x.  
+  print 'testLinear passes'
 
 def testLinearGD():
   # Minimize linear regression datasets
   pts = [[95], [85]]
   ys = [85, 95]
   l = Linear(pts, ys)
-  g = GD(l.eq(), l.partials(), l.starts())
-  assertApproxEqual([26.768, 0.644], g.minimize())
+  eq = l.eq()
+  partials = l.partials()
+  starts = l.startingPoints()
+  g = GD(eq, partials, starts)
+  if not assertApproxEqual([177.2668, -0.96972], g.minimize()):
+    raise AssertionError('testLinearGD failed 0')
+  print 'testLinearGD passes'
 
 def testGD():
 # Wolfphram minimize -5 - 3x + 4y + x^2 - x y + y^2
@@ -147,11 +184,13 @@ def testGD():
     return 4 -xs[0]+2*xs[1]
 
   g = GD(eq, [p0, p1], [0, 2])
-  assertApproxEqual([0.66666666, -1.666666666], g.minimize())
-  #assertThat([.6666666], Approx(Equals(g.minimize())))
-  testLinearGD()
+  if not assertApproxEqual([0.66666666, -1.666666666], g.minimize()):
+    raise AssertionError('testGD failed 0')
+  print 'testGD passes'
 
 def main():  
   testGD()
+  testLinear()
+  testLinearGD()
 
 main()
