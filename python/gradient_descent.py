@@ -1,4 +1,14 @@
 
+def done2(cur, b4, mindiff):
+  return abs(cur - b4) < mindiff
+
+def doneCondition(points, b4Points, n, mindiff):
+  # Check if each coordinate has moved enough
+  for i in xrange(n):
+    if abs(points[i] - b4Points[i]) > mindiff:
+      return False
+  return True
+
 class GD:
   """Finds the local minimum for an equation.
   
@@ -11,8 +21,8 @@ class GD:
     self.eq = eq
     self.partials = partials
     self.starts = starts
-    self.rate = 0.000101
-    self.mindiff = 0.00000000001
+    self.rate = 0.000501
+    self.mindiff = 0.0000001
 
   def minimize(self):
     # assert len(self.partials) == len(self.starts)
@@ -20,21 +30,40 @@ class GD:
     d = ''
     points = self.starts
     cur = self.eq(points)
-    b4 = cur - 1000
-    while abs(cur - b4) > self.mindiff:
+    b4 = cur + 1000
+    b4Points = [p + 1000 for p in points]
+
+    while True:
+      if done2(cur, b4, self.mindiff):
+        break
+      #if doneCondition(points, b4Points, n, self.mindiff):
+      #  break
       # Calculate gradients at each coordinate
       curPartials = []
       for p in self.partials:
         curPartials.append(p(points))
+      b4Points = points
       # Update each coordinate
       for i in xrange(n):
         points[i] = points[i] - self.rate * curPartials[i]
       # Find out how far I moved.
       b4 = cur
       cur = self.eq(points)
+      print 'Weights %s. Loss: %f. Rate: %f' % (str(points), cur, self.rate)
+      # Adapt learning rates.
+      if (cur - b4) > 0.01:
+        # Slow down learning rate, diverging!
+        #raise AssertionError('Going the wrong way!')
+        print 'Diverging!'
+        self.rate /= 1.1
+      if (cur - b4) > -10000.0 and (cur - b4) <= -0.5:
+        print 'Speed up!'
+        # Speed up learning rate make more progress!
+        #raise AssertionError('Going the wrong way!')
+        self.rate *= 1.01
     return points
 
-eps = 0.001
+eps = 0.01
 
 def assertApproxEqual(l0, l1):
   if len(l0) != len(l1):
@@ -107,7 +136,6 @@ class Linear:
         dist = yi - y
         loss += dist**2
       fl = loss / (n * 1.0)
-      print 'Weights %s. Loss: %.3f' % (str(ws), fl)
       return fl
     return calcLoss
 
