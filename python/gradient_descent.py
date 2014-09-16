@@ -135,7 +135,8 @@ class Linear:
         y = self.ys[i]
         dist = yi - y
         loss += dist**2
-      fl = loss / (n * 1.0)
+      # (1 / 2m) * Sum loss
+      fl = loss / (n * 2.0)
       return fl
     return calcLoss
 
@@ -154,7 +155,7 @@ class Linear:
           if iCoor != 0:
             distForEx *= p[pCoor]
           dist += distForEx
-        dist = dist * 2.0 / (n * 1.0)
+        dist = dist / (n * 1.0)
         return dist
 
       return hypo
@@ -180,12 +181,12 @@ def testLinear():
   pts = [[95], [85]]
   ys = [85, 95]
   l = Linear(pts, ys)
-  assert assertEquals(8125, l.eq()([0, 0]))
+  assert assertEquals(4062.5, l.eq()([0, 0]))
   p = l.partials()
   # (3 + 5 (95))  - 85  +  (3 + 5 (85)) - 95 
-  assert assertEquals(726.0, p[0]([3, 5])) # 3 + 5x. 
+  assert assertEquals(363.0, p[0]([3, 5])) # 3 + 5x. 
   # (95 * 393) + (85 * 333)
-  assert assertEquals(65640.0, p[1]([3, 5])) # 3 + 5x.  
+  assert assertEquals(32820.0, p[1]([3, 5])) # 3 + 5x.  
   print 'testLinear passes'
 
 def testLinearGD():
