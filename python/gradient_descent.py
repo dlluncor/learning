@@ -21,7 +21,7 @@ class GD:
     self.eq = eq
     self.partials = partials
     self.starts = starts
-    self.rate = 0.000501
+    self.rate = 0.000500
     self.mindiff = 0.0000001
 
   def minimize(self):
@@ -55,7 +55,7 @@ class GD:
         # Slow down learning rate, diverging!
         #raise AssertionError('Going the wrong way!')
         print 'Diverging!'
-        self.rate /= 1.1
+        #self.rate /= 1.01
       if (cur - b4) > -10000.0 and (cur - b4) <= -0.5:
         print 'Speed up!'
         # Speed up learning rate make more progress!
