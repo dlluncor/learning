@@ -9,7 +9,7 @@ class Student(object):
 
   def average_score(self):
     N = len(self.grades)
-    return sum(self.grades) / N
+    return sum(self.grades) / float(N)
 
 def main():
   print 'Ranking of students:'
