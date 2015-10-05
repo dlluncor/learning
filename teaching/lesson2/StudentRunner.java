@@ -2,11 +2,25 @@
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 
 public class StudentRunner {
 
   // API: Application Programming Interface
   // Expose to the user only what they need to see.
+  public static class StudentsComparator implements Comparator<Student> {
+    @Override
+    public int compare(Student s1, Student s2) {
+      float val = s1.getAverageScore() - s2.getAverageScore();
+      if (val == 0.0f) {
+        return 0;
+      } else if (val > 0.0f) {
+        return -1;
+      }
+      return 1;
+    }
+  }
 
   public static void main(String[] args) {
     System.out.println("Ranking of students:");
@@ -19,6 +33,7 @@ public class StudentRunner {
 
     List<Student> students = Arrays.asList(
       new Student[]{s1, s2, s3});
+    Collections.sort(students, new StudentsComparator());
 
     for (Student student : students) {
       System.out.println(
