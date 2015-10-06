@@ -22,8 +22,8 @@ var ctrl = {};
 
 ctrl.main = function() {
   var s1 = new Student("David L", [90, 86, 60, 10]);
-  var s2 = new Student('Jovani K', [92, 84, 83, 12])
-  var s3 = new Student('Alexa O', [43, 23, 22, 5])
+  var s2 = new Student('Jovani K', [92, 84, 83, 12]);
+  var s3 = new Student('Alexa O', [43, 23, 22, 5]);
   var students = [s1, s2, s3];
   var str = "";
   students.sort(function(a, b) {return a.average_score() < b.average_score();});
