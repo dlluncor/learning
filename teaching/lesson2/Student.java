@@ -16,6 +16,6 @@ public class Student {
     for (int grade: this.grades) {
       sum += grade;
     }
-    return sum / this.grades.length;
+    return (float)sum / (float)this.grades.length;
   }
 }

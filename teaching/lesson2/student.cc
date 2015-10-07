@@ -49,13 +49,14 @@ bool compFunc(Student s1, Student s2) {
 } 
 
 int main() {
+  printf("Ranking of students:\n");
   Student s1("David L", {90, 86, 60, 10});
   Student s2("Jovani K", {92, 84, 83, 12});
   Student s3("Alexa O", {43, 23, 22, 5});
   vector<Student> students({s1, s2, s3});
   std::sort(students.begin(), students.end(), compFunc);
   for (const auto s: students) {
-    printf("%s \t (%.2f)\n", s.name().c_str(),
+    printf("%s \t(%.2f)\n", s.name().c_str(),
            s.average_score());
   }
   return 0;

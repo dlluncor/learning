@@ -36,17 +36,16 @@ students = [s0, s1, s2]
 students.sort! {|x, y| compareM(x, y)}
 symbol = :hello
 d = {:hello => "name = #{s0.getName}"}
-p d[:hello]
+#p d[:hello]
 students.each {
   |s|
-  puts "%s \t (%.2f)\n" % [s.getName, s.getAverageScore]
+  puts "%s \t(%.2f)\n" % [s.getName, s.getAverageScore]
   d[s.getName] = s
 }
 
-puts d["David L"].getName
-s0.greeting
-Other::hello
-puts match("$hello", "hello there")
+#puts d["David L"].getName
+#s0.greeting
+#Other::hello
 end
 
 main()

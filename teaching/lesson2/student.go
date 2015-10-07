@@ -37,7 +37,7 @@ func main() {
   students := []Student{s1, s2, s3}
   sort.Sort(ByAge(students))
   for _, s := range students {
-    fmt.Printf("%s \t (%.2f)\n", s.name,
+    fmt.Printf("%s \t(%.2f)\n", s.name,
       s.score())
   }
 }

@@ -37,7 +37,7 @@ public class StudentRunner {
 
     for (Student student : students) {
       System.out.println(
-        String.format("%s \t (%.2f)", 
+        String.format("%s \t(%.2f)", 
           student.getName(),
           student.getAverageScore()));
     }
