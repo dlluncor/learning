@@ -145,4 +145,21 @@ def main():
   print b.board_as_str()
   print ''
   print 'Game over player %s won.' % (b.won_player())
-main()
+#main()
+
+import pdb
+
+def have_happiness(money, friends):
+  if money <= 0 and friends <= 0:
+    pdb.set_trace()
+    return "unhappy"
+  else:
+    if money > 0:
+      if friends <= 0:
+        pdb.set_trace()
+        return "happy"
+      return "unhappy"
+  return "indifferent"
+
+have_happiness(0, 0)
+have_happiness(300000, 2)
