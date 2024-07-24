@@ -2,6 +2,7 @@ import mailbox
 import os
 import json
 import datetime
+import time
 
 from dateutil import parser as dparser
 from typing import List, Dict, TypedDict
@@ -17,7 +18,22 @@ cfg2 = {
     'mbox_path': '/Users/dlluncor/Downloads/Starred_Takeout/Starred.mbox'
 }
 
-cfg = cfg2
+cfg3 = {
+    'root_dir': '/Users/dlluncor/Desktop/Code/davids_emails/10mb',
+    'mbox_path': '/Users/dlluncor/Downloads/Takeout/Mail/LargeEmails-10MB.mbox'
+}
+
+cfg4 = {
+    'root_dir': '/Users/dlluncor/Desktop/Code/davids_emails/5mb',
+    'mbox_path': '/Users/dlluncor/Downloads/Starred_Takeout/TODO.mbox'
+}
+
+cfg5 = {
+    'root_dir': '/Users/dlluncor/Desktop/Code/davids_emails/1mb',
+    'mbox_path': '/Users/dlluncor/Downloads/LargeEmails-1MB-001.mbox'
+}
+
+cfg = cfg3
 
 AttachmentDict = TypedDict('AttachmentDict', {
     'content': bytes,
@@ -34,7 +50,7 @@ def parse_attachments(message) -> List[AttachmentDict]:
         if part.get('Content-Disposition') is None: continue
 
         filename = part.get_filename()
-        if filename is None or filename is 'None':
+        if filename is None or filename == 'None':
             continue
 
         contents = part.get_payload(decode=True)
@@ -121,16 +137,21 @@ class EmailMessage(object):
         return EmailMessage(message)
 
 def main():
-    print('About to open mbox folder')
 
     # Open the mbox folder
     mbox = mailbox.mbox(cfg['mbox_path'])
-    print('Opened mbox folder {}'.format(cfg['mbox_path']))
+    print('Opening mbox folder {}'.format(cfg['mbox_path']))
 
     # Iterate through each message in the folder
-    MAX = 1000
+    MAX = 10000000
     payloads = []
     num_emails = 0
+    should_write_attachments = False
+    before = time.time()
+
+    if not should_write_attachments:
+        print('Skipping writing attachments out to separate files nested in folders')
+
     for message in mbox:
         num_emails += 1
         if num_emails > MAX:
@@ -141,18 +162,27 @@ def main():
         attachments = msg_obj.get_attachments()
 
         if attachments:
-            write_attachments(cfg, attachments)
+            if should_write_attachments:
+                write_attachments(cfg, attachments)
             payload['attachments'] = [attach['rel_path'] for attach in attachments]
 
         payloads.append(payload)
 
-    # Write out 2000 emails at a time
-    with open(os.path.join(cfg['root_dir'], 'out-0.json'), 'w') as f:
-        f.write(json.dumps({
-            'emails': payloads
-        }, indent=2))
+    after = time.time()
 
-    print('Successfully processed {} emails'.format(num_emails))
+    # Write out 2000 emails at a time
+    chunk_size = 2000 #2000
+    chunks = [payloads[i:i + chunk_size] for i in range(0, len(payloads), chunk_size)]
+    i = 0
+    for chunk in chunks:
+        with open(os.path.join(cfg['root_dir'], 'emails-{}.json'.format(i)), 'w') as f:
+            f.write(json.dumps({
+                'emails': chunk
+            }, indent=2))
+
+        i += 1
+
+    print('Took {:.2f} seconds to process {} emails'.format(after - before, num_emails))
 
 
 if __name__ == '__main__':
