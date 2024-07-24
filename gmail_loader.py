@@ -34,6 +34,9 @@ def parse_attachments(message) -> List[AttachmentDict]:
         if part.get('Content-Disposition') is None: continue
 
         filename = part.get_filename()
+        if filename is None or filename is 'None':
+            continue
+
         contents = part.get_payload(decode=True)
 
         #print('Have an attachment')
@@ -44,7 +47,7 @@ def parse_attachments(message) -> List[AttachmentDict]:
         dt = dparser.parse(date_str)
 
         # Group months together
-        rel_path = '{}_{}/{}'.format(dt.month, dt.year, filename)
+        rel_path = '{:02d}_{:02d}/{}'.format(dt.year, dt.month, filename)
 
         attachments.append({
             'content': contents,
@@ -147,7 +150,7 @@ def main():
     with open(os.path.join(cfg['root_dir'], 'out-0.json'), 'w') as f:
         f.write(json.dumps({
             'emails': payloads
-        }))
+        }, indent=2))
 
     print('Successfully processed {} emails'.format(num_emails))
 
