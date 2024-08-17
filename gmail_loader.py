@@ -25,7 +25,7 @@ cfg3 = {
 
 cfg4 = {
     'root_dir': '/Users/dlluncor/Desktop/Code/davids_emails/5mb',
-    'mbox_path': '/Users/dlluncor/Downloads/Starred_Takeout/TODO.mbox'
+    'mbox_path': '/Users/dlluncor/Downloads/Takeout_2/Mail/LargeEmails-5MB.mbox'
 }
 
 cfg5 = {
@@ -33,6 +33,7 @@ cfg5 = {
     'mbox_path': '/Users/dlluncor/Downloads/LargeEmails-1MB-001.mbox'
 }
 
+SHOULD_WRITE_ATTACHMENTS = True
 cfg = cfg3
 
 AttachmentDict = TypedDict('AttachmentDict', {
@@ -146,8 +147,8 @@ def main():
     MAX = 10000000
     payloads = []
     num_emails = 0
-    should_write_attachments = False
     before = time.time()
+    should_write_attachments = SHOULD_WRITE_ATTACHMENTS
 
     if not should_write_attachments:
         print('Skipping writing attachments out to separate files nested in folders')
