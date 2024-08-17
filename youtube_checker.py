@@ -84,12 +84,12 @@ def get_uploaded_videos(filename, debug):
 	}
 
 def get_video_files(folder_path):
-	extensions = ['.mp4']
+	extensions = ['.mp4', '.mov']
 	video_filenames = []
 	for root, dirs, files in os.walk(folder_path):
 		for rel_path in files:
 			filename, ext = os.path.splitext(rel_path)
-			if ext not in extensions:
+			if ext.lower() not in extensions:
 				continue
 			video_filenames.append(filename)
 
